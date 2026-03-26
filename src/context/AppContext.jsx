@@ -189,6 +189,8 @@ function reducer(state, action) {
 
     case 'ADD_INVOICE':
       return { ...state, invoices: [...state.invoices, action.payload] }
+    case 'ADD_INVOICES_BATCH':
+      return { ...state, invoices: [...state.invoices, ...action.payload] }
     case 'UPDATE_INVOICE':
       return { ...state, invoices: state.invoices.map(i => i.id === action.payload.id ? action.payload : i) }
     case 'DELETE_INVOICE':
@@ -213,8 +215,51 @@ function reducer(state, action) {
   }
 }
 
+function getNextDate(dateStr, recurring) {
+  const d = new Date(dateStr)
+  if (recurring === 'monthly') d.setMonth(d.getMonth() + 1)
+  else if (recurring === 'quarterly') d.setMonth(d.getMonth() + 3)
+  else if (recurring === 'yearly') d.setFullYear(d.getFullYear() + 1)
+  return d.toISOString().split('T')[0]
+}
+
+function generateRecurringInvoices(invoices) {
+  const today = new Date().toISOString().split('T')[0]
+  const newInvoices = []
+  const processed = new Set(localStorage.getItem('recurring_processed') ? JSON.parse(localStorage.getItem('recurring_processed')) : [])
+
+  invoices.forEach(inv => {
+    if (!inv.recurring || inv.status === 'draft') return
+    const nextDate = getNextDate(inv.date, inv.recurring)
+    const key = `${inv.id}_${nextDate}`
+    if (nextDate <= today && !processed.has(key) && !invoices.find(i => i.number !== inv.number && i.clientId === inv.clientId && i.date === nextDate)) {
+      const yearNum = new Date(nextDate).getFullYear()
+      const existingNums = invoices.map(i => i.number).concat(newInvoices.map(i => i.number))
+      const maxNum = existingNums.filter(n => n?.includes(`${yearNum}`)).map(n => parseInt(n.split('-').pop())).filter(n => !isNaN(n))
+      const nextNum = maxNum.length ? Math.max(...maxNum) + 1 + newInvoices.length : invoices.length + 1
+      const number = `FAC-${yearNum}-${String(nextNum).padStart(3, '0')}`
+      const dueDate = getNextDate(nextDate, 'monthly')
+      newInvoices.push({ ...inv, id: `inv${Date.now()}${Math.random().toString(36).slice(2,5)}`, number, date: nextDate, dueDate, status: 'pending' })
+      processed.add(key)
+    }
+  })
+
+  if (newInvoices.length) {
+    localStorage.setItem('recurring_processed', JSON.stringify([...processed]))
+  }
+  return newInvoices
+}
+
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, loadState)
+
+  // Generate recurring invoices on mount
+  useEffect(() => {
+    const newInvoices = generateRecurringInvoices(state.invoices)
+    if (newInvoices.length > 0) {
+      dispatch({ type: 'ADD_INVOICES_BATCH', payload: newInvoices })
+    }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('audiovisual_app_state', JSON.stringify(state))
