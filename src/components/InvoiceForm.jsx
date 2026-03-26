@@ -63,8 +63,7 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
       tax: parseInt(l.tax) || 0,
     }))
     const { lines, ...rest } = form
-    const recurring = rest.recurring === 'none' ? null : rest.recurring
-    onSave({ ...rest, recurring, lines: cleanLines })
+    onSave({ ...rest, recurring: rest.recurring === 'none' ? null : rest.recurring, lines: cleanLines })
   }
 
   const statusOptions = type === 'invoice'
@@ -72,32 +71,34 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
     : [{ value: 'pending', label: 'Pendiente' }, { value: 'accepted', label: 'Aceptado' }, { value: 'rejected', label: 'Rechazado' }]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header fields */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: 'Número', field: 'number', type: 'text' },
-          { label: 'Fecha', field: 'date', type: 'date' },
-          { label: dateLabel2, field: dateField2, type: 'date' },
-        ].map(({ label, field, type: t }) => (
-          <div key={field}>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>
-            <input type={t} value={form[field] || ''} onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))} className={inputCls} />
-          </div>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Número</label>
+          <input type="text" value={form.number} onChange={e => setForm(f => ({ ...f, number: e.target.value }))} className={inputCls} aria-label="Número de documento" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fecha</label>
+          <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className={inputCls} aria-label="Fecha del documento" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{dateLabel2}</label>
+          <input type="date" value={form[dateField2]} onChange={e => setForm(f => ({ ...f, [dateField2]: e.target.value }))} className={inputCls} aria-label={dateLabel2} />
+        </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Estado</label>
-          <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className={inputCls}>
+          <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className={inputCls} aria-label="Estado del documento">
             {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
       </div>
 
-      {/* Client + recurring */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Client + Recurring */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="sm:col-span-2">
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Cliente *</label>
-          <select value={form.clientId} onChange={e => setForm(f => ({ ...f, clientId: e.target.value }))} className={inputCls}>
+          <select value={form.clientId} onChange={e => setForm(f => ({ ...f, clientId: e.target.value }))} className={inputCls} aria-required="true">
             <option value="">Seleccionar cliente...</option>
             {state.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
@@ -105,9 +106,9 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
         {type === 'invoice' && (
           <div>
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
-              <RefreshCw size={12} /> Recurrencia
+              <RefreshCw size={11} aria-hidden="true" /> Recurrencia
             </label>
-            <select value={form.recurring || 'none'} onChange={e => setForm(f => ({ ...f, recurring: e.target.value }))} className={inputCls}>
+            <select value={form.recurring || 'none'} onChange={e => setForm(f => ({ ...f, recurring: e.target.value }))} className={inputCls} aria-label="Frecuencia de repetición">
               <option value="none">Sin repetición</option>
               <option value="monthly">Mensual</option>
               <option value="quarterly">Trimestral</option>
@@ -118,9 +119,11 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
       </div>
 
       {/* Lines */}
-      <div>
+      <fieldset>
+        <legend className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Conceptos</legend>
         <div className="border border-gray-200 dark:border-gray-600 rounded-xl overflow-hidden">
-          <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
+          {/* Desktop header */}
+          <div className="hidden lg:grid grid-cols-12 gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
             <div className="col-span-5">Descripción</div>
             <div className="col-span-2 text-center">Cantidad</div>
             <div className="col-span-2 text-right">Precio</div>
@@ -130,60 +133,107 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
           </div>
 
           {form.lines.map((line) => (
-            <div key={line.id} className="grid grid-cols-12 gap-2 px-3 py-2 items-center border-b border-gray-100 dark:border-gray-700 last:border-0">
-              <div className="col-span-5">
-                <select value={line.productId || ''} onChange={e => updateLine(line.id, 'productId', e.target.value)}
-                  className="w-full text-xs border-0 bg-transparent focus:outline-none text-gray-500 dark:text-gray-400 mb-0.5">
-                  <option value="">Servicio del catálogo...</option>
-                  {state.products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <input type="text" placeholder="Descripción del concepto" value={line.description}
-                  onChange={e => updateLine(line.id, 'description', e.target.value)}
-                  className="w-full px-0 py-0 text-sm border-0 border-b border-dashed border-gray-200 dark:border-gray-600 focus:outline-none focus:border-primary-400 bg-transparent text-gray-900 dark:text-white placeholder-gray-400" />
+            <div key={line.id} className="border-b border-gray-100 dark:border-gray-700 last:border-0">
+              {/* Desktop row */}
+              <div className="hidden lg:grid grid-cols-12 gap-2 px-3 py-2 items-center">
+                <div className="col-span-5">
+                  <select value={line.productId || ''} onChange={e => updateLine(line.id, 'productId', e.target.value)}
+                    className="w-full text-xs border-0 bg-transparent focus:outline-none text-gray-500 dark:text-gray-400 mb-0.5" aria-label="Seleccionar servicio del catálogo">
+                    <option value="">Servicio del catálogo...</option>
+                    {state.products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                  <input type="text" placeholder="Descripción del concepto" value={line.description}
+                    onChange={e => updateLine(line.id, 'description', e.target.value)} aria-label="Descripción del concepto"
+                    className="w-full px-0 py-0 text-sm border-0 border-b border-dashed border-gray-200 dark:border-gray-600 focus:outline-none focus:border-primary-400 bg-transparent text-gray-900 dark:text-white placeholder-gray-400" />
+                </div>
+                <div className="col-span-2">
+                  <input type="number" min="0" value={line.quantity} onChange={e => updateLine(line.id, 'quantity', e.target.value)} aria-label="Cantidad"
+                    className="w-full px-2 py-1 text-sm text-center border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500" />
+                </div>
+                <div className="col-span-2">
+                  <input type="number" min="0" step="0.01" value={line.price} onChange={e => updateLine(line.id, 'price', e.target.value)} aria-label="Precio unitario"
+                    className="w-full px-2 py-1 text-sm text-right border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500" />
+                </div>
+                <div className="col-span-1">
+                  <select value={line.tax} onChange={e => updateLine(line.id, 'tax', e.target.value)} aria-label="Tipo de IVA"
+                    className="w-full px-1 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-center">
+                    {[0, 4, 10, 21].map(r => <option key={r} value={r}>{r}%</option>)}
+                  </select>
+                </div>
+                <div className="col-span-1 text-right text-sm font-medium text-gray-900 dark:text-white">
+                  {formatCurrency(calcLineSubtotal(line))}
+                </div>
+                <div className="col-span-1 flex justify-end">
+                  <button onClick={() => removeLine(line.id)} disabled={form.lines.length === 1} aria-label="Eliminar concepto"
+                    className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 disabled:opacity-30">
+                    <Trash2 size={14} aria-hidden="true" />
+                  </button>
+                </div>
               </div>
-              <div className="col-span-2">
-                <input type="number" min="0" value={line.quantity} onChange={e => updateLine(line.id, 'quantity', e.target.value)}
-                  className="w-full px-2 py-1 text-sm text-center border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500" />
-              </div>
-              <div className="col-span-2">
-                <input type="number" min="0" step="0.01" value={line.price} onChange={e => updateLine(line.id, 'price', e.target.value)}
-                  className="w-full px-2 py-1 text-sm text-right border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500" />
-              </div>
-              <div className="col-span-1">
-                <select value={line.tax} onChange={e => updateLine(line.id, 'tax', e.target.value)}
-                  className="w-full px-1 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-center">
-                  {[0, 4, 10, 21].map(r => <option key={r} value={r}>{r}%</option>)}
-                </select>
-              </div>
-              <div className="col-span-1 text-right text-sm font-medium text-gray-900 dark:text-white">
-                {formatCurrency(calcLineSubtotal(line))}
-              </div>
-              <div className="col-span-1 flex justify-end">
-                <button onClick={() => removeLine(line.id)} disabled={form.lines.length === 1}
-                  className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 disabled:opacity-30">
-                  <Trash2 size={14} />
-                </button>
+
+              {/* Mobile stacked layout */}
+              <div className="lg:hidden p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <select value={line.productId || ''} onChange={e => updateLine(line.id, 'productId', e.target.value)}
+                      className="w-full text-xs border-0 bg-transparent focus:outline-none text-gray-500 dark:text-gray-400 mb-1" aria-label="Servicio del catálogo">
+                      <option value="">Servicio del catálogo...</option>
+                      {state.products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                    <input type="text" placeholder="Descripción" value={line.description}
+                      onChange={e => updateLine(line.id, 'description', e.target.value)} aria-label="Descripción"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+                  </div>
+                  <button onClick={() => removeLine(line.id)} disabled={form.lines.length === 1} aria-label="Eliminar concepto"
+                    className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 disabled:opacity-30 flex-shrink-0 mt-5">
+                    <Trash2 size={16} aria-hidden="true" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Cantidad</label>
+                    <input type="number" min="0" value={line.quantity} onChange={e => updateLine(line.id, 'quantity', e.target.value)}
+                      className="w-full px-2 py-2 text-sm text-center border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Precio €</label>
+                    <input type="number" min="0" step="0.01" value={line.price} onChange={e => updateLine(line.id, 'price', e.target.value)}
+                      className="w-full px-2 py-2 text-sm text-right border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">IVA</label>
+                    <select value={line.tax} onChange={e => updateLine(line.id, 'tax', e.target.value)}
+                      className="w-full px-2 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
+                      {[0, 4, 10, 21].map(r => <option key={r} value={r}>{r}%</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Subtotal: {formatCurrency(calcLineSubtotal(line))}
+                  </span>
+                </div>
               </div>
             </div>
           ))}
 
           <div className="px-3 py-2 bg-gray-50 dark:bg-gray-700/30">
-            <button onClick={addLine} className="flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-medium">
-              <Plus size={14} /> Añadir concepto
+            <button onClick={addLine} className="flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-medium py-1" aria-label="Añadir concepto">
+              <Plus size={14} aria-hidden="true" /> Añadir concepto
             </button>
           </div>
         </div>
-      </div>
+      </fieldset>
 
       {/* Totals + Notes */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Notas</label>
-          <textarea rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+          <label htmlFor="notes" className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Notas</label>
+          <textarea id="notes" rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
             className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
             placeholder="Condiciones de pago, notas adicionales..." />
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-2">
+        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-2" aria-label="Resumen de importes">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">Base imponible</span>
             <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(totals.subtotal)}</span>
@@ -201,9 +251,14 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
         </div>
       </div>
 
+      {/* Actions */}
       <div className="flex justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-        <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Cancelar</button>
-        <button onClick={handleSave} className="px-6 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">Guardar</button>
+        <button onClick={onCancel} className="px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          Cancelar
+        </button>
+        <button onClick={handleSave} className="px-6 py-2.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors">
+          Guardar
+        </button>
       </div>
     </div>
   )
