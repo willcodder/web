@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Search, Eye, Pencil, Trash2, Download, RefreshCw } from 'lucide-react'
+import { Plus, Search, Eye, Pencil, Trash2, Download, RefreshCw, X, Calendar } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { calcDocumentTotals, formatCurrency, formatDate, generateId, STATUS_LABELS } from '../utils/calculations'
 import { exportInvoicesCSV } from '../utils/exportCSV'
@@ -15,6 +15,8 @@ export default function Invoices() {
   const { state, dispatch } = useApp()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [modal, setModal] = useState(null)
   const [selected, setSelected] = useState(null)
 
@@ -23,13 +25,22 @@ export default function Invoices() {
   const filtered = state.invoices.filter(inv => {
     const client = getClient(inv.clientId)
     const matchSearch = [inv.number, client?.name].some(v => v?.toLowerCase().includes(search.toLowerCase()))
-    return matchSearch && (!filterStatus || inv.status === filterStatus)
+    const matchStatus = !filterStatus || inv.status === filterStatus
+    const matchFrom   = !dateFrom || inv.date >= dateFrom
+    const matchTo     = !dateTo   || inv.date <= dateTo
+    return matchSearch && matchStatus && matchFrom && matchTo
   }).sort((a, b) => new Date(b.date) - new Date(a.date))
 
+  const hasFilters = search || filterStatus || dateFrom || dateTo
+
   const totals = {
-    all: state.invoices.filter(i => i.status !== 'draft').reduce((s, i) => s + calcDocumentTotals(i.lines).total, 0),
-    paid: state.invoices.filter(i => i.status === 'paid').reduce((s, i) => s + calcDocumentTotals(i.lines).total, 0),
-    pending: state.invoices.filter(i => i.status === 'pending').reduce((s, i) => s + calcDocumentTotals(i.lines).total, 0),
+    all:     filtered.filter(i => i.status !== 'draft').reduce((s, i) => s + calcDocumentTotals(i.lines).total, 0),
+    paid:    filtered.filter(i => i.status === 'paid').reduce((s, i) => s + calcDocumentTotals(i.lines).total, 0),
+    pending: filtered.filter(i => i.status === 'pending').reduce((s, i) => s + calcDocumentTotals(i.lines).total, 0),
+  }
+
+  function clearFilters() {
+    setSearch(''); setFilterStatus(''); setDateFrom(''); setDateTo('')
   }
 
   function openNew() { setSelected(null); setModal('form') }
@@ -107,44 +118,82 @@ export default function Invoices() {
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Total facturado', value: totals.all, cls: 'text-gray-900 dark:text-white' },
-          { label: 'Cobrado', value: totals.paid, cls: 'text-green-600 dark:text-green-400' },
-          { label: 'Pendiente', value: totals.pending, cls: 'text-yellow-600 dark:text-yellow-400' },
+          { label: 'Facturado', value: totals.all,     color: 'text-gray-900 dark:text-white' },
+          { label: 'Cobrado',   value: totals.paid,    color: 'text-[#34C759]' },
+          { label: 'Pendiente', value: totals.pending, color: 'text-[#FF9500]' },
         ].map(s => (
-          <div key={s.label} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 lg:p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">{s.label}</p>
-            <p className={`text-base lg:text-lg font-bold ${s.cls}`}>{formatCurrency(s.value)}</p>
+          <div key={s.label} className="bg-white dark:bg-[#1C1C1E] rounded-xl2 shadow-card p-3 lg:p-4">
+            <p className="text-[11px] uppercase tracking-wide font-medium text-gray-400 dark:text-[#636366] mb-1 truncate">{s.label}</p>
+            <p className={`text-[15px] lg:text-[17px] font-bold tabular-nums ${s.color}`}>{formatCurrency(s.value)}</p>
+            {hasFilters && <p className="text-[10px] text-gray-400 dark:text-[#636366] mt-0.5">{filtered.length} resultado{filtered.length !== 1 ? 's' : ''}</p>}
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3">
+
+        {/* Row 1: search + actions */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1 sm:flex-none">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
             <input type="text" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)}
-              className={`${inputCls} pl-9 w-full sm:w-52`} aria-label="Buscar facturas" />
+              className={`${inputCls} pl-8 w-full sm:w-48`} aria-label="Buscar facturas" />
           </div>
           <button onClick={() => exportInvoicesCSV(filtered, state.clients)} aria-label="Exportar CSV"
             className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors">
-            <Download size={15} /><span className="hidden sm:inline">CSV</span>
+            <Download size={14} /><span className="hidden sm:inline text-[13px]">CSV</span>
           </button>
           <button onClick={openNew}
-            className="flex items-center gap-1.5 px-3 lg:px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
-            <Plus size={16} /><span className="hidden sm:inline">Nueva factura</span><span className="sm:hidden">Nueva</span>
+            className="flex items-center gap-1.5 px-3 lg:px-4 py-2 bg-[#007AFF] text-white text-[13px] font-semibold rounded-xl hover:bg-[#0062CC] transition-colors ml-auto">
+            <Plus size={15} /><span className="hidden sm:inline">Nueva factura</span><span className="sm:hidden">Nueva</span>
           </button>
         </div>
 
-        {/* Status filter pills */}
-        <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label="Filtrar por estado">
-          {STATUS_OPTS.map(s => (
-            <button key={s} onClick={() => setFilterStatus(s)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${filterStatus === s ? 'bg-primary-600 text-white border-primary-600' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-primary-300'}`}
-              aria-pressed={filterStatus === s}>
-              {s ? STATUS_LABELS[s] : 'Todas'}
+        {/* Row 2: date range + status pills */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+          {/* Date range */}
+          <div className="flex items-center gap-2 bg-white dark:bg-[#1C1C1E] rounded-xl shadow-card px-3 py-2">
+            <Calendar size={13} className="text-gray-400 flex-shrink-0" aria-hidden="true" />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              aria-label="Fecha desde"
+              className="text-[12px] border-0 bg-transparent focus:outline-none text-gray-700 dark:text-gray-300 w-32"
+            />
+            <span className="text-gray-300 dark:text-[#3A3A3C] text-xs">→</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              aria-label="Fecha hasta"
+              className="text-[12px] border-0 bg-transparent focus:outline-none text-gray-700 dark:text-gray-300 w-32"
+            />
+          </div>
+
+          {/* Status pills */}
+          <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label="Filtrar por estado">
+            {STATUS_OPTS.map(s => (
+              <button key={s} onClick={() => setFilterStatus(s)}
+                className={`px-3 py-1.5 text-[12px] font-semibold rounded-xl border transition-colors ${
+                  filterStatus === s
+                    ? 'bg-[#007AFF] text-white border-[#007AFF]'
+                    : 'bg-white dark:bg-[#1C1C1E] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#3A3A3C] hover:border-[#007AFF]'
+                }`}
+                aria-pressed={filterStatus === s}>
+                {s ? STATUS_LABELS[s] : 'Todas'}
+              </button>
+            ))}
+          </div>
+
+          {/* Clear filters */}
+          {hasFilters && (
+            <button onClick={clearFilters}
+              className="flex items-center gap-1 text-[12px] text-gray-400 dark:text-[#636366] hover:text-[#FF3B30] transition-colors ml-auto sm:ml-0">
+              <X size={12} /> Limpiar
             </button>
-          ))}
+          )}
         </div>
       </div>
 
