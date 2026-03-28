@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Package, FileText, ClipboardList,
   Receipt, Settings, ChevronLeft, ChevronRight, Film,
-  Sun, Moon, Search
+  Sun, Moon, Search, Lock
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
@@ -26,7 +26,7 @@ const mobileNavItems = [
   { to: '/gastos',       icon: Receipt,         label: 'Gastos' },
 ]
 
-export default function Layout({ children, onOpenSearch, collapsed, setCollapsed }) {
+export default function Layout({ children, onOpenSearch, collapsed, setCollapsed, onLock }) {
   const { state } = useApp()
   const { dark, toggle } = useTheme()
   const location = useLocation()
@@ -178,6 +178,16 @@ export default function Layout({ children, onOpenSearch, collapsed, setCollapsed
               className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.07] transition-colors"
             >
               {dark ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
+            </button>
+
+            {/* Lock button */}
+            <button
+              onClick={onLock}
+              aria-label="Bloquear aplicación"
+              className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.07] transition-colors"
+              title="Bloquear"
+            >
+              <Lock size={15} aria-hidden="true" />
             </button>
 
             {/* Avatar */}

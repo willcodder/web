@@ -4,6 +4,8 @@ import { AppProvider } from './context/AppContext'
 import { ThemeProvider } from './context/ThemeContext'
 import Layout from './components/Layout'
 import GlobalSearch from './components/GlobalSearch'
+import LoginScreen from './components/LoginScreen'
+import { sessionUnlocked, sessionLock } from './utils/auth'
 
 // Code-split pages — only loaded when visited
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -22,7 +24,7 @@ function PageLoader() {
   )
 }
 
-function AppInner() {
+function AppInner({ onLock }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
 
@@ -39,7 +41,7 @@ function AppInner() {
 
   return (
     <>
-      <Layout onOpenSearch={() => setSearchOpen(true)} collapsed={collapsed} setCollapsed={setCollapsed}>
+      <Layout onOpenSearch={() => setSearchOpen(true)} collapsed={collapsed} setCollapsed={setCollapsed} onLock={onLock}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -58,13 +60,28 @@ function AppInner() {
 }
 
 export default function App() {
+  const [unlocked, setUnlocked] = useState(() => sessionUnlocked())
+
+  function handleLogin() {
+    setUnlocked(true)
+  }
+
+  function handleLock() {
+    sessionLock()
+    setUnlocked(false)
+  }
+
   return (
     <ThemeProvider>
-      <AppProvider>
-        <BrowserRouter basename="/web">
-          <AppInner />
-        </BrowserRouter>
-      </AppProvider>
+      {!unlocked ? (
+        <LoginScreen onLogin={handleLogin} />
+      ) : (
+        <AppProvider>
+          <BrowserRouter basename="/web">
+            <AppInner onLock={handleLock} />
+          </BrowserRouter>
+        </AppProvider>
+      )}
     </ThemeProvider>
   )
 }

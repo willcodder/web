@@ -1,13 +1,32 @@
 import { useState } from 'react'
-import { Save, Building2, Moon, Sun, Receipt, Globe } from 'lucide-react'
+import { Save, Building2, Moon, Sun, Receipt, Globe, ShieldCheck, Eye, EyeOff } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
+import { checkPassword, setPassword } from '../utils/auth'
 
 export default function Settings() {
   const { state, dispatch } = useApp()
   const { dark, toggle } = useTheme()
   const [form, setForm]   = useState({ ...state.company })
   const [saved, setSaved] = useState(false)
+
+  // Security state
+  const [pwdForm, setPwdForm]   = useState({ current: '', next: '', confirm: '' })
+  const [showPwd, setShowPwd]   = useState(false)
+  const [pwdError, setPwdError] = useState('')
+  const [pwdOk, setPwdOk]       = useState(false)
+
+  async function savePwd() {
+    setPwdError(''); setPwdOk(false)
+    if (pwdForm.next.length < 4) { setPwdError('Mínimo 4 caracteres'); return }
+    if (pwdForm.next !== pwdForm.confirm) { setPwdError('Las contraseñas no coinciden'); return }
+    const ok = await checkPassword(pwdForm.current)
+    if (!ok) { setPwdError('Contraseña actual incorrecta'); return }
+    await setPassword(pwdForm.next)
+    setPwdForm({ current: '', next: '', confirm: '' })
+    setPwdOk(true)
+    setTimeout(() => setPwdOk(false), 2500)
+  }
 
   function save() {
     dispatch({ type: 'UPDATE_COMPANY', payload: form })
@@ -195,6 +214,63 @@ export default function Settings() {
           >
             <Save size={14} />
             {saved ? 'Guardado' : 'Guardar cambios'}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Seguridad ── */}
+      <div className={cardCls}>
+        <div className="flex items-center gap-3 mb-6">
+          <div
+            className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(145deg,#34C759,#248a3d)' }}
+          >
+            <ShieldCheck size={17} className="text-white" />
+          </div>
+          <div>
+            <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white tracking-tight">Seguridad</h2>
+            <p className="text-[12px] text-gray-400 dark:text-[#636366]">Cambia la contraseña de acceso</p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {[
+            { field: 'current', placeholder: 'Contraseña actual',    autoComplete: 'current-password' },
+            { field: 'next',    placeholder: 'Nueva contraseña',      autoComplete: 'new-password' },
+            { field: 'confirm', placeholder: 'Confirmar nueva contraseña', autoComplete: 'new-password' },
+          ].map(({ field, placeholder, autoComplete }) => (
+            <div key={field} className="relative">
+              <input
+                type={showPwd ? 'text' : 'password'}
+                value={pwdForm[field]}
+                onChange={e => { setPwdForm(f => ({ ...f, [field]: e.target.value })); setPwdError('') }}
+                placeholder={placeholder}
+                autoComplete={autoComplete}
+                className={inputCls + ' pr-10'}
+              />
+              {field === 'current' && (
+                <button type="button" onClick={() => setShowPwd(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  tabIndex={-1}>
+                  {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {pwdError && <p className="text-[12px] text-[#FF3B30] mt-2 font-medium">{pwdError}</p>}
+
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={savePwd}
+            disabled={!pwdForm.current || !pwdForm.next || !pwdForm.confirm}
+            className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-semibold rounded-xl transition-colors disabled:opacity-40 ${
+              pwdOk ? 'bg-[#34C759] text-white' : 'bg-[#007AFF] text-white hover:bg-[#0062CC]'
+            }`}
+          >
+            <ShieldCheck size={14} />
+            {pwdOk ? 'Contraseña actualizada' : 'Cambiar contraseña'}
           </button>
         </div>
       </div>
