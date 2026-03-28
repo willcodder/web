@@ -12,6 +12,9 @@ const initialState = {
     phone: '+34 91 123 45 67',
     email: 'info@miproductora.es',
     iban: 'ES91 2100 0418 4502 0005 1332',
+    // Fiscal config
+    tipo: 'empresa',   // 'empresa' | 'autonomo'
+    irpf: 15,          // % retención IRPF (solo si autonomo)
   },
   clients: [
     {

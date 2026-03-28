@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Plus, Trash2, RefreshCw } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Globe } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { calcDocumentTotals, calcLineSubtotal, formatCurrency, generateId, getNextNumber } from '../utils/calculations'
+import { calcDocumentTotals, calcLineSubtotal, formatCurrency, generateId, getNextNumber, TIPO_FACTURA_LABELS, TIPO_FACTURA_NOTA } from '../utils/calculations'
 
 const emptyLine = () => ({ id: generateId(), productId: '', description: '', quantity: 1, price: 0, tax: 21 })
 
@@ -25,6 +25,7 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
       [dateField2]: due,
       status: 'draft',
       recurring: 'none',
+      tipoFactura: 'nacional',
       lines: [emptyLine()],
       notes: '',
     }
@@ -52,7 +53,11 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
     }))
   }
 
-  const totals = calcDocumentTotals(form.lines)
+  const company    = state.company
+  const isAutonomo = company.tipo === 'autonomo'
+  const tipoFactura = form.tipoFactura || 'nacional'
+  const irpf       = isAutonomo && tipoFactura === 'nacional' ? (company.irpf || 0) : 0
+  const totals     = calcDocumentTotals(form.lines, { irpf, tipoFactura })
 
   function handleSave() {
     if (!form.clientId || form.lines.length === 0) return
@@ -63,7 +68,12 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
       tax: parseInt(l.tax) || 0,
     }))
     const { lines, ...rest } = form
-    onSave({ ...rest, recurring: rest.recurring === 'none' ? null : rest.recurring, lines: cleanLines })
+    onSave({
+      ...rest,
+      recurring:    rest.recurring === 'none' ? null : rest.recurring,
+      tipoFactura:  rest.tipoFactura || 'nacional',
+      lines:        cleanLines,
+    })
   }
 
   const statusOptions = type === 'invoice'
@@ -94,7 +104,7 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
         </div>
       </div>
 
-      {/* Client + Recurring */}
+      {/* Client + Tipo + Recurring */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="sm:col-span-2">
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Cliente *</label>
@@ -115,6 +125,34 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
               <option value="yearly">Anual</option>
             </select>
           </div>
+        )}
+      </div>
+
+      {/* Tipo de factura */}
+      <div>
+        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 flex items-center gap-1">
+          <Globe size={11} aria-hidden="true" /> Tipo de factura
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(TIPO_FACTURA_LABELS).map(([val, lbl]) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, tipoFactura: val }))}
+              className={`px-3.5 py-1.5 rounded-xl text-[12px] font-semibold border transition-colors ${
+                (form.tipoFactura || 'nacional') === val
+                  ? 'bg-[#007AFF] border-[#007AFF] text-white'
+                  : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-[#007AFF]'
+              }`}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+        {tipoFactura !== 'nacional' && (
+          <p className="mt-2 text-[11px] text-[#007AFF] dark:text-[#409cff] bg-[#007AFF]/[0.06] dark:bg-[#007AFF]/[0.08] px-3 py-2 rounded-lg">
+            ℹ️ {TIPO_FACTURA_NOTA[tipoFactura]}
+          </p>
         )}
       </div>
 
@@ -233,20 +271,39 @@ export default function InvoiceForm({ initial, onSave, onCancel, type = 'invoice
             className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
             placeholder="Condiciones de pago, notas adicionales..." />
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-2" aria-label="Resumen de importes">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Base imponible</span>
-            <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(totals.subtotal)}</span>
+        <div className="bg-gray-50 dark:bg-[#2C2C2E] rounded-xl p-4 space-y-2" aria-label="Resumen de importes">
+          <div className="flex justify-between text-[13px]">
+            <span className="text-gray-500 dark:text-[#8E8E93]">Base imponible</span>
+            <span className="font-medium text-gray-900 dark:text-white tabular-nums">{formatCurrency(totals.subtotal)}</span>
           </div>
-          {totals.taxBreakdown.map(t => (
-            <div key={t.rate} className="flex justify-between text-sm">
-              <span className="text-gray-500 dark:text-gray-400">IVA {t.rate}%</span>
-              <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(t.amount)}</span>
+
+          {/* IVA — solo nacional */}
+          {tipoFactura === 'nacional' && totals.taxBreakdown.map(t => (
+            <div key={t.rate} className="flex justify-between text-[13px]">
+              <span className="text-gray-500 dark:text-[#8E8E93]">IVA {t.rate}%</span>
+              <span className="font-medium text-gray-900 dark:text-white tabular-nums">{formatCurrency(t.amount)}</span>
             </div>
           ))}
-          <div className="flex justify-between text-base font-bold border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
-            <span className="text-gray-900 dark:text-white">Total</span>
-            <span className="text-primary-600 dark:text-primary-400">{formatCurrency(totals.total)}</span>
+
+          {/* IVA 0% internacional */}
+          {tipoFactura !== 'nacional' && (
+            <div className="flex justify-between text-[13px]">
+              <span className="text-gray-500 dark:text-[#8E8E93]">IVA (exento)</span>
+              <span className="font-medium text-[#34C759] tabular-nums">0,00 €</span>
+            </div>
+          )}
+
+          {/* IRPF — solo autónomo + nacional */}
+          {irpf > 0 && (
+            <div className="flex justify-between text-[13px]">
+              <span className="text-gray-500 dark:text-[#8E8E93]">IRPF -{irpf}%</span>
+              <span className="font-medium text-[#FF3B30] tabular-nums">-{formatCurrency(totals.irpfAmount)}</span>
+            </div>
+          )}
+
+          <div className="flex justify-between text-[15px] font-bold border-t border-gray-200 dark:border-[#3A3A3C] pt-2.5 mt-1">
+            <span className="text-gray-900 dark:text-white">Total a pagar</span>
+            <span className="text-[#007AFF] tabular-nums">{formatCurrency(totals.total)}</span>
           </div>
         </div>
       </div>

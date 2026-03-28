@@ -1,13 +1,16 @@
 import jsPDF from 'jspdf'
-import { calcDocumentTotals, calcLineSubtotal, formatCurrency, formatDate } from './calculations'
+import { calcDocumentTotals, calcLineSubtotal, formatCurrency, formatDate, TIPO_FACTURA_NOTA } from './calculations'
 
 /**
  * Generates an invoice/quote PDF using jsPDF.
  * Returns a Blob so it can be shared or downloaded.
  */
 export async function generateInvoicePDF(doc, client, company, type = 'invoice') {
-  const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
-  const totals = calcDocumentTotals(doc.lines)
+  const pdf         = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+  const tipoFactura = doc.tipoFactura || 'nacional'
+  const isAutonomo  = company.tipo === 'autonomo'
+  const irpf        = isAutonomo && tipoFactura === 'nacional' ? (company.irpf || 0) : 0
+  const totals      = calcDocumentTotals(doc.lines, { irpf, tipoFactura })
   const docTitle = type === 'invoice' ? 'FACTURA' : 'PRESUPUESTO'
   const dateLabel2 = type === 'invoice' ? 'Vence' : 'Válido hasta'
   const dateValue2 = type === 'invoice' ? doc.dueDate : doc.validUntil
@@ -140,13 +143,34 @@ export async function generateInvoicePDF(doc, client, company, type = 'invoice')
   }
 
   totRow('Base imponible', formatCurrency(totals.subtotal))
-  totals.taxBreakdown.forEach(t => totRow(`IVA ${t.rate}%`, formatCurrency(t.amount)))
+
+  // IVA
+  if (tipoFactura === 'nacional') {
+    totals.taxBreakdown.forEach(t => totRow(`IVA ${t.rate}%`, formatCurrency(t.amount)))
+  } else {
+    totRow('IVA (operación exenta)', '0,00 €')
+  }
+
+  // IRPF retention
+  if (irpf > 0 && totals.irpfAmount > 0) {
+    totRow(`Retención IRPF ${irpf}%`, `-${formatCurrency(totals.irpfAmount)}`)
+  }
+
   hrLine(y - 2, [209, 213, 219])
   y += 2
-  totRow('TOTAL', formatCurrency(totals.total), true)
+  totRow('TOTAL A PAGAR', formatCurrency(totals.total), true)
 
   // ── Footer ────────────────────────────────────────────────────────────────
   y += 8
+
+  // Legal note for international invoices
+  if (tipoFactura !== 'nacional' && TIPO_FACTURA_NOTA[tipoFactura]) {
+    setFont(7, 'normal', [107, 114, 128])
+    const legalLines = pdf.splitTextToSize(`Nota fiscal: ${TIPO_FACTURA_NOTA[tipoFactura]}`, contentW)
+    pdf.text(legalLines, margin, y)
+    y += legalLines.length * 4 + 4
+  }
+
   if (doc.notes) {
     setFont(8, 'bold', [107, 114, 128])
     pdf.text('Notas:', margin, y)
