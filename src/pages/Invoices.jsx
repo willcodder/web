@@ -11,12 +11,30 @@ import InvoicePDF from '../components/InvoicePDF'
 
 const STATUS_OPTS = ['', 'draft', 'pending', 'paid']
 
+const now = new Date()
+const y = now.getFullYear()
+const pad = n => String(n).padStart(2, '0')
+const isoDate = (year, month, day) => `${year}-${pad(month)}-${pad(day)}`
+const daysInMonth = (year, month) => new Date(year, month, 0).getDate()
+
+const DATE_SHORTCUTS = [
+  { label: 'Este mes',      from: isoDate(y, now.getMonth() + 1, 1),        to: isoDate(y, now.getMonth() + 1, daysInMonth(y, now.getMonth() + 1)) },
+  { label: 'Mes anterior',  from: isoDate(y, now.getMonth(), 1),             to: isoDate(y, now.getMonth(), daysInMonth(y, now.getMonth())) },
+  { label: 'T1',            from: isoDate(y, 1, 1),  to: isoDate(y, 3, 31) },
+  { label: 'T2',            from: isoDate(y, 4, 1),  to: isoDate(y, 6, 30) },
+  { label: 'T3',            from: isoDate(y, 7, 1),  to: isoDate(y, 9, 30) },
+  { label: 'T4',            from: isoDate(y, 10, 1), to: isoDate(y, 12, 31) },
+  { label: 'Este año',      from: isoDate(y, 1, 1),  to: isoDate(y, 12, 31) },
+  { label: String(y - 1),   from: isoDate(y - 1, 1, 1), to: isoDate(y - 1, 12, 31) },
+]
+
 export default function Invoices() {
   const { state, dispatch } = useApp()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [activeShortcut, setActiveShortcut] = useState(null)
   const [modal, setModal] = useState(null)
   const [selected, setSelected] = useState(null)
 
@@ -40,7 +58,11 @@ export default function Invoices() {
   }
 
   function clearFilters() {
-    setSearch(''); setFilterStatus(''); setDateFrom(''); setDateTo('')
+    setSearch(''); setFilterStatus(''); setDateFrom(''); setDateTo(''); setActiveShortcut(null)
+  }
+
+  function applyShortcut(s) {
+    setDateFrom(s.from); setDateTo(s.to); setActiveShortcut(s.label)
   }
 
   function openNew() { setSelected(null); setModal('form') }
@@ -150,50 +172,67 @@ export default function Invoices() {
           </button>
         </div>
 
-        {/* Row 2: date range + status pills */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-          {/* Date range */}
-          <div className="flex items-center gap-2 bg-white dark:bg-[#1C1C1E] rounded-xl shadow-card px-3 py-2">
-            <Calendar size={13} className="text-gray-400 flex-shrink-0" aria-hidden="true" />
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              aria-label="Fecha desde"
-              className="text-[12px] border-0 bg-transparent focus:outline-none text-gray-700 dark:text-gray-300 w-32"
-            />
-            <span className="text-gray-300 dark:text-[#3A3A3C] text-xs">→</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              aria-label="Fecha hasta"
-              className="text-[12px] border-0 bg-transparent focus:outline-none text-gray-700 dark:text-gray-300 w-32"
-            />
-          </div>
-
-          {/* Status pills */}
-          <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label="Filtrar por estado">
-            {STATUS_OPTS.map(s => (
-              <button key={s} onClick={() => setFilterStatus(s)}
+        {/* Row 2: shortcuts + date range */}
+        <div className="flex flex-col gap-2">
+          {/* Quick shortcuts */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {DATE_SHORTCUTS.map(s => (
+              <button key={s.label} onClick={() => applyShortcut(s)}
                 className={`px-3 py-1.5 text-[12px] font-semibold rounded-xl border transition-colors ${
-                  filterStatus === s
+                  activeShortcut === s.label
                     ? 'bg-[#007AFF] text-white border-[#007AFF]'
                     : 'bg-white dark:bg-[#1C1C1E] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#3A3A3C] hover:border-[#007AFF]'
-                }`}
-                aria-pressed={filterStatus === s}>
-                {s ? STATUS_LABELS[s] : 'Todas'}
+                }`}>
+                {s.label}
               </button>
             ))}
           </div>
 
-          {/* Clear filters */}
-          {hasFilters && (
-            <button onClick={clearFilters}
-              className="flex items-center gap-1 text-[12px] text-gray-400 dark:text-[#636366] hover:text-[#FF3B30] transition-colors ml-auto sm:ml-0">
-              <X size={12} /> Limpiar
-            </button>
-          )}
+          {/* Row 3: date range manual + status pills */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            {/* Date range */}
+            <div className="flex items-center gap-2 bg-white dark:bg-[#1C1C1E] rounded-xl shadow-card px-3 py-2">
+              <Calendar size={13} className="text-gray-400 flex-shrink-0" aria-hidden="true" />
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => { setDateFrom(e.target.value); setActiveShortcut(null) }}
+                aria-label="Fecha desde"
+                className="text-[12px] border-0 bg-transparent focus:outline-none text-gray-700 dark:text-gray-300 w-32"
+              />
+              <span className="text-gray-300 dark:text-[#3A3A3C] text-xs">→</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={e => { setDateTo(e.target.value); setActiveShortcut(null) }}
+                aria-label="Fecha hasta"
+                className="text-[12px] border-0 bg-transparent focus:outline-none text-gray-700 dark:text-gray-300 w-32"
+              />
+            </div>
+
+            {/* Status pills */}
+            <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label="Filtrar por estado">
+              {STATUS_OPTS.map(s => (
+                <button key={s} onClick={() => setFilterStatus(s)}
+                  className={`px-3 py-1.5 text-[12px] font-semibold rounded-xl border transition-colors ${
+                    filterStatus === s
+                      ? 'bg-[#007AFF] text-white border-[#007AFF]'
+                      : 'bg-white dark:bg-[#1C1C1E] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#3A3A3C] hover:border-[#007AFF]'
+                  }`}
+                  aria-pressed={filterStatus === s}>
+                  {s ? STATUS_LABELS[s] : 'Todas'}
+                </button>
+              ))}
+            </div>
+
+            {/* Clear filters */}
+            {hasFilters && (
+              <button onClick={clearFilters}
+                className="flex items-center gap-1 text-[12px] text-gray-400 dark:text-[#636366] hover:text-[#FF3B30] transition-colors ml-auto sm:ml-0">
+                <X size={12} /> Limpiar
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
