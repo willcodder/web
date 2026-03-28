@@ -1,10 +1,31 @@
-import { STATUS_LABELS, STATUS_COLORS } from '../../utils/calculations'
+import { STATUS_LABELS } from '../../utils/calculations'
+
+// Apple-inspired status pill colors
+const STATUS_STYLES = {
+  paid:     { dot: '#34C759', bg: 'bg-[#34C759]/10 dark:bg-[#34C759]/15', text: 'text-[#248a3d] dark:text-[#30d158]' },
+  pending:  { dot: '#FF9500', bg: 'bg-[#FF9500]/10 dark:bg-[#FF9500]/15', text: 'text-[#c97200] dark:text-[#ff9f0a]' },
+  overdue:  { dot: '#FF3B30', bg: 'bg-[#FF3B30]/10 dark:bg-[#FF3B30]/15', text: 'text-[#c0281f] dark:text-[#ff453a]' },
+  draft:    { dot: '#8E8E93', bg: 'bg-[#8E8E93]/10 dark:bg-[#8E8E93]/15', text: 'text-[#636366] dark:text-[#8E8E93]' },
+  accepted: { dot: '#007AFF', bg: 'bg-[#007AFF]/10 dark:bg-[#007AFF]/15', text: 'text-[#0062cc] dark:text-[#409cff]' },
+  rejected: { dot: '#FF3B30', bg: 'bg-[#FF3B30]/10 dark:bg-[#FF3B30]/15', text: 'text-[#c0281f] dark:text-[#ff453a]' },
+  cancelled:{ dot: '#8E8E93', bg: 'bg-[#8E8E93]/10 dark:bg-[#8E8E93]/15', text: 'text-[#636366] dark:text-[#8E8E93]' },
+}
 
 export default function Badge({ status, className = '' }) {
-  const label = STATUS_LABELS[status] || status
-  const color = STATUS_COLORS[status] || 'bg-gray-100 text-gray-600'
+  const label  = STATUS_LABELS[status] || status
+  const styles = STATUS_STYLES[status] || STATUS_STYLES.draft
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color} ${className}`}>
+    <span className={`
+      inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+      text-[11px] font-semibold leading-none
+      ${styles.bg} ${styles.text} ${className}
+    `}>
+      <span
+        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+        style={{ background: styles.dot }}
+        aria-hidden="true"
+      />
       {label}
     </span>
   )

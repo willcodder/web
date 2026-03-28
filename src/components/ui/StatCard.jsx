@@ -1,28 +1,43 @@
-export default function StatCard({ title, value, subtitle, icon: Icon, color = 'primary', trend }) {
-  const colors = {
-    primary: 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400',
-    green: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400',
-    yellow: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400',
-    red: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400',
-    blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
-    purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-  }
+// Apple system color gradients for icon backgrounds
+const gradients = {
+  primary: 'linear-gradient(145deg,#007AFF,#0055b3)',
+  green:   'linear-gradient(145deg,#34C759,#248a3d)',
+  yellow:  'linear-gradient(145deg,#FF9500,#c97200)',
+  red:     'linear-gradient(145deg,#FF3B30,#c0281f)',
+  blue:    'linear-gradient(145deg,#5AC8FA,#32ade6)',
+  purple:  'linear-gradient(145deg,#AF52DE,#8944ab)',
+}
 
+export default function StatCard({ title, value, subtitle, icon: Icon, color = 'primary', trend }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</span>
+    <div className="bg-white dark:bg-[#1C1C1E] rounded-xl2 shadow-card hover:shadow-card-hover p-5 transition-all duration-200">
+      <div className="flex items-start justify-between mb-4">
+        <p className="text-[13px] font-medium text-gray-500 dark:text-[#8E8E93] leading-tight">
+          {title}
+        </p>
         {Icon && (
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors[color]}`}>
-            <Icon size={20} />
+          <div
+            className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 shadow-sm"
+            style={{ background: gradients[color] || gradients.primary }}
+          >
+            <Icon size={17} className="text-white" aria-hidden="true" />
           </div>
         )}
       </div>
-      <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{value}</div>
-      {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>}
+
+      <p className="text-[26px] font-bold text-gray-900 dark:text-white tracking-tight tabular-nums leading-none mb-1.5">
+        {value}
+      </p>
+
+      {subtitle && (
+        <p className="text-[12px] text-gray-400 dark:text-[#636366]">
+          {subtitle}
+        </p>
+      )}
+
       {trend !== undefined && (
-        <p className={`text-xs font-medium mt-2 ${trend >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-          {trend >= 0 ? '+' : ''}{trend}% vs mes anterior
+        <p className={`text-[11px] font-semibold mt-2 ${trend >= 0 ? 'text-[#34C759]' : 'text-[#FF3B30]'}`}>
+          {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}% vs mes anterior
         </p>
       )}
     </div>
