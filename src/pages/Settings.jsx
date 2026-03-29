@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Save, Building2, Moon, Sun, Receipt, Globe, ShieldCheck, Eye, EyeOff } from 'lucide-react'
+import { Save, Building2, Moon, Sun, Receipt, Globe, ShieldCheck, Eye, EyeOff, FileSpreadsheet } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
 import { checkPassword, setPassword } from '../utils/auth'
+import ImportExcel from '../components/ImportExcel'
 
 export default function Settings() {
   const { state, dispatch } = useApp()
@@ -216,6 +217,23 @@ export default function Settings() {
             {saved ? 'Guardado' : 'Guardar cambios'}
           </button>
         </div>
+      </div>
+
+      {/* ── Importar Excel ── */}
+      <div className={cardCls}>
+        <div className="flex items-center gap-3 mb-5">
+          <div
+            className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(145deg,#34C759,#248a3d)' }}
+          >
+            <FileSpreadsheet size={17} className="text-white" />
+          </div>
+          <div>
+            <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white tracking-tight">Importar desde Excel</h2>
+            <p className="text-[12px] text-gray-400 dark:text-[#636366]">Sube tus facturas históricas en .xlsx, .xls o .csv</p>
+          </div>
+        </div>
+        <ImportExcel />
       </div>
 
       {/* ── Seguridad ── */}
