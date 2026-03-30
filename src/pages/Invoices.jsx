@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Search, Eye, Pencil, Trash2, Download, RefreshCw, X, Calendar } from 'lucide-react'
+import { Plus, Search, Eye, Pencil, Trash2, Download, RefreshCw, X, Calendar, CheckSquare, Square, CheckCircle2, Clock, FileEdit } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { calcDocumentTotals, formatCurrency, formatDate, generateId, STATUS_LABELS } from '../utils/calculations'
 import { exportInvoicesCSV } from '../utils/exportCSV'
@@ -37,6 +37,42 @@ export default function Invoices() {
   const [activeShortcut, setActiveShortcut] = useState(null)
   const [modal, setModal] = useState(null)
   const [selected, setSelected] = useState(null)
+  const [checkedIds, setCheckedIds] = useState(new Set())
+
+  const allFilteredIds = filtered.map(i => i.id)
+  const allChecked = allFilteredIds.length > 0 && allFilteredIds.every(id => checkedIds.has(id))
+  const someChecked = allFilteredIds.some(id => checkedIds.has(id))
+
+  function toggleCheck(id, e) {
+    e?.stopPropagation()
+    setCheckedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    if (allChecked) {
+      setCheckedIds(new Set())
+    } else {
+      setCheckedIds(new Set(allFilteredIds))
+    }
+  }
+
+  function bulkSetStatus(status) {
+    checkedIds.forEach(id => {
+      const inv = state.invoices.find(i => i.id === id)
+      if (inv) dispatch({ type: 'UPDATE_INVOICE', payload: { ...inv, status } })
+    })
+    setCheckedIds(new Set())
+  }
+
+  function bulkDelete() {
+    if (!confirm(`¿Eliminar ${checkedIds.size} factura${checkedIds.size !== 1 ? 's' : ''}?`)) return
+    checkedIds.forEach(id => dispatch({ type: 'DELETE_INVOICE', payload: id }))
+    setCheckedIds(new Set())
+  }
 
   const getClient = id => state.clients.find(c => c.id === id)
 
@@ -89,6 +125,21 @@ export default function Invoices() {
   }
 
   const columns = [
+    {
+      header: (
+        <button onClick={toggleAll} className="p-0.5 text-gray-400 hover:text-[#007AFF] transition-colors" aria-label="Seleccionar todo">
+          {allChecked ? <CheckSquare size={15} className="text-[#007AFF]" /> : someChecked ? <CheckSquare size={15} className="text-[#007AFF]/50" /> : <Square size={15} />}
+        </button>
+      ),
+      cellClassName: 'w-8',
+      render: inv => (
+        <button onClick={e => toggleCheck(inv.id, e)} className="p-0.5 text-gray-400 hover:text-[#007AFF] transition-colors" aria-label="Seleccionar">
+          {checkedIds.has(inv.id)
+            ? <CheckSquare size={15} className="text-[#007AFF]" />
+            : <Square size={15} />}
+        </button>
+      ),
+    },
     {
       header: 'Número', mobileLabel: '',
       render: inv => (
@@ -237,6 +288,40 @@ export default function Invoices() {
       </div>
 
       <Table columns={columns} data={filtered} onRowClick={openView} emptyMessage="No hay facturas" />
+
+      {/* ── Bulk action bar ── */}
+      {checkedIds.size > 0 && (
+        <div
+          className="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl shadow-xl"
+          style={{ background: 'rgba(28,28,30,0.95)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
+          <span className="text-[13px] font-semibold text-white mr-1 tabular-nums">
+            {checkedIds.size} seleccionada{checkedIds.size !== 1 ? 's' : ''}
+          </span>
+          <div className="w-px h-5 bg-white/20 mx-1" />
+          <button onClick={() => bulkSetStatus('paid')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#34C759]/20 hover:bg-[#34C759]/30 text-[#34C759] text-[12px] font-semibold transition-colors">
+            <CheckCircle2 size={13} /> Cobrada
+          </button>
+          <button onClick={() => bulkSetStatus('pending')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF9500]/20 hover:bg-[#FF9500]/30 text-[#FF9500] text-[12px] font-semibold transition-colors">
+            <Clock size={13} /> Pendiente
+          </button>
+          <button onClick={() => bulkSetStatus('draft')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 text-[12px] font-semibold transition-colors">
+            <FileEdit size={13} /> Borrador
+          </button>
+          <div className="w-px h-5 bg-white/20 mx-1" />
+          <button onClick={bulkDelete}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF3B30]/20 hover:bg-[#FF3B30]/30 text-[#FF3B30] text-[12px] font-semibold transition-colors">
+            <Trash2 size={13} /> Eliminar
+          </button>
+          <button onClick={() => setCheckedIds(new Set())}
+            className="ml-1 p-1.5 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       <Modal open={modal === 'form'} onClose={() => setModal(null)} title={selected ? `Editar ${selected.number}` : 'Nueva factura'} size="xl">
         <InvoiceForm initial={selected} type="invoice" onSave={save} onCancel={() => setModal(null)} />
