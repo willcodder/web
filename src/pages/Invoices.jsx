@@ -39,10 +39,6 @@ export default function Invoices() {
   const [selected, setSelected] = useState(null)
   const [checkedIds, setCheckedIds] = useState(new Set())
 
-  const allFilteredIds = filtered.map(i => i.id)
-  const allChecked = allFilteredIds.length > 0 && allFilteredIds.every(id => checkedIds.has(id))
-  const someChecked = allFilteredIds.some(id => checkedIds.has(id))
-
   function toggleCheck(id, e) {
     e?.stopPropagation()
     setCheckedIds(prev => {
@@ -50,14 +46,6 @@ export default function Invoices() {
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
-  }
-
-  function toggleAll() {
-    if (allChecked) {
-      setCheckedIds(new Set())
-    } else {
-      setCheckedIds(new Set(allFilteredIds))
-    }
   }
 
   function bulkSetStatus(status) {
@@ -84,6 +72,18 @@ export default function Invoices() {
     const matchTo     = !dateTo   || inv.date <= dateTo
     return matchSearch && matchStatus && matchFrom && matchTo
   }).sort((a, b) => new Date(b.date) - new Date(a.date))
+
+  const allFilteredIds = filtered.map(i => i.id)
+  const allChecked = allFilteredIds.length > 0 && allFilteredIds.every(id => checkedIds.has(id))
+  const someChecked = allFilteredIds.some(id => checkedIds.has(id))
+
+  function toggleAll() {
+    if (allChecked) {
+      setCheckedIds(new Set())
+    } else {
+      setCheckedIds(new Set(allFilteredIds))
+    }
+  }
 
   const hasFilters = search || filterStatus || dateFrom || dateTo
 
