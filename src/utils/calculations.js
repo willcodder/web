@@ -1,5 +1,6 @@
 export function calcLineSubtotal(line) {
-  return line.quantity * line.price
+  const price = line.price ?? line.unitPrice ?? 0
+  return (line.quantity ?? 0) * price
 }
 
 export function calcLineTotal(line) {
@@ -16,13 +17,14 @@ export function calcLineTotal(line) {
  * @param {string} opts.tipoFactura  - 'nacional' | 'intracomunitaria' | 'extracomunitaria'
  */
 export function calcDocumentTotals(lines, { irpf = 0, tipoFactura = 'nacional' } = {}) {
-  const subtotal = lines.reduce((sum, l) => sum + calcLineSubtotal(l), 0)
+  const safeLines = Array.isArray(lines) ? lines : []
+  const subtotal = safeLines.reduce((sum, l) => sum + calcLineSubtotal(l), 0)
 
   // IVA only applies to national invoices
   const applyIva = tipoFactura === 'nacional'
 
   const taxBreakdown = applyIva
-    ? Object.values(lines.reduce((acc, l) => {
+    ? Object.values(safeLines.reduce((acc, l) => {
         const base   = calcLineSubtotal(l)
         const taxAmt = (base * l.tax) / 100
         const key    = `${l.tax}`

@@ -27,12 +27,12 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.error) {
       return (
-        <div style={{ padding: 32, fontFamily: 'system-ui', background: '#fff', minHeight: '100vh' }}>
+        <div style={{ padding: 32, fontFamily: 'system-ui', background: '#ffffff', minHeight: '100vh', color: '#1c1c1e' }}>
           <h2 style={{ color: '#FF3B30', marginBottom: 8 }}>Algo ha fallado</h2>
-          <pre style={{ background: '#f2f2f7', padding: 16, borderRadius: 12, fontSize: 13, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-            {this.state.error?.message}
+          <pre style={{ background: '#f2f2f7', color: '#1c1c1e', padding: 16, borderRadius: 12, fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 300, overflow: 'auto' }}>
+            {String(this.state.error?.message || this.state.error || 'Error desconocido')}
             {'\n\n'}
-            {this.state.error?.stack}
+            {String(this.state.error?.stack || '')}
           </pre>
           <button
             onClick={() => { this.setState({ error: null }); window.location.reload() }}
