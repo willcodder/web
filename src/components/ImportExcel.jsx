@@ -56,6 +56,18 @@ function parseDate(val) {
   return s
 }
 
+// Handles Spanish (1.234,56 €) and English (1234.56) number formats
+function parseNumber(val) {
+  if (val === null || val === undefined || val === '') return 0
+  if (typeof val === 'number') return isNaN(val) ? 0 : val
+  const s = String(val).trim()
+    .replace(/[€$£\s]/g, '')   // remove currency symbols and spaces
+    .replace(/\./g, '')         // remove dot thousands separator (Spanish)
+    .replace(',', '.')          // replace comma decimal separator with dot
+  const n = parseFloat(s)
+  return isNaN(n) ? 0 : n
+}
+
 function parseStatus(val) {
   if (!val) return 'pending'
   const v = String(val).toLowerCase().trim()
@@ -112,9 +124,9 @@ export default function ImportExcel() {
         newClients.push(client)
       }
 
-      const rawTotal    = mapping.total    ? parseFloat(row[mapping.total])    || 0 : 0
-      const rawSubtotal = mapping.subtotal ? parseFloat(row[mapping.subtotal]) || 0 : rawTotal
-      const rawTax      = mapping.tax      ? parseFloat(row[mapping.tax])      || 21 : (rawSubtotal ? 21 : 0)
+      const rawTotal    = mapping.total    ? parseNumber(row[mapping.total])    : 0
+      const rawSubtotal = mapping.subtotal ? parseNumber(row[mapping.subtotal]) : rawTotal
+      const rawTax      = mapping.tax      ? parseNumber(row[mapping.tax])      : (rawSubtotal ? 21 : 0)
       const date        = mapping.date     ? parseDate(row[mapping.date]) : new Date().toISOString().slice(0,10)
       const number      = mapping.number   ? String(row[mapping.number] || '').trim() || `IMP-${i+1}` : `IMP-${i+1}`
       const notes       = mapping.notes    ? String(row[mapping.notes] || '').trim() : ''
