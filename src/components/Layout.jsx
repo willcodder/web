@@ -9,21 +9,21 @@ import { useTheme } from '../context/ThemeContext'
 import NotificationPanel from './NotificationPanel'
 
 const navItems = [
-  { to: '/',              icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/facturas',      icon: FileText,        label: 'Facturas' },
-  { to: '/presupuestos',  icon: ClipboardList,   label: 'Presupuestos' },
-  { to: '/gastos',        icon: Receipt,         label: 'Gastos' },
-  { to: '/clientes',      icon: Users,           label: 'Clientes' },
-  { to: '/servicios',     icon: Package,         label: 'Servicios' },
-  { to: '/configuracion', icon: Settings,        label: 'Ajustes' },
+  { to: '/app/',              icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/app/facturas',      icon: FileText,        label: 'Facturas' },
+  { to: '/app/presupuestos',  icon: ClipboardList,   label: 'Presupuestos' },
+  { to: '/app/gastos',        icon: Receipt,         label: 'Gastos' },
+  { to: '/app/clientes',      icon: Users,           label: 'Clientes' },
+  { to: '/app/servicios',     icon: Package,         label: 'Servicios' },
+  { to: '/app/configuracion', icon: Settings,        label: 'Ajustes' },
 ]
 
 const mobileNavItems = [
-  { to: '/',             icon: LayoutDashboard, label: 'Inicio' },
-  { to: '/facturas',     icon: FileText,        label: 'Facturas' },
-  { to: '/presupuestos', icon: ClipboardList,   label: 'Presup.' },
-  { to: '/clientes',     icon: Users,           label: 'Clientes' },
-  { to: '/gastos',       icon: Receipt,         label: 'Gastos' },
+  { to: '/app/',             icon: LayoutDashboard, label: 'Inicio' },
+  { to: '/app/facturas',     icon: FileText,        label: 'Facturas' },
+  { to: '/app/presupuestos', icon: ClipboardList,   label: 'Presup.' },
+  { to: '/app/clientes',     icon: Users,           label: 'Clientes' },
+  { to: '/app/gastos',       icon: Receipt,         label: 'Gastos' },
 ]
 
 export default function Layout({ children, onOpenSearch, collapsed, setCollapsed, onLock }) {
@@ -32,7 +32,7 @@ export default function Layout({ children, onOpenSearch, collapsed, setCollapsed
   const location = useLocation()
 
   const currentPage = navItems.find(item =>
-    item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)
+    item.to === '/app/' ? location.pathname === '/app/' || location.pathname === '/app' : location.pathname.startsWith(item.to)
   )
 
   const initial = state.company.name.charAt(0).toUpperCase()
@@ -102,7 +102,7 @@ export default function Layout({ children, onOpenSearch, collapsed, setCollapsed
             <NavLink
               key={to}
               to={to}
-              end={to === '/'}
+              end={to === '/app/'}
               title={collapsed ? label : undefined}
               aria-label={label}
               className={({ isActive }) => `
@@ -226,7 +226,7 @@ export default function Layout({ children, onOpenSearch, collapsed, setCollapsed
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
+            end={to === '/app/'}
             aria-label={label}
             className={({ isActive }) => `
               flex-1 flex flex-col items-center justify-center pt-2 pb-3 gap-0.5

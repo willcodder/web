@@ -1,11 +1,15 @@
 import { useState, useEffect, lazy, Suspense, Component } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import { ThemeProvider } from './context/ThemeContext'
 import Layout from './components/Layout'
 import GlobalSearch from './components/GlobalSearch'
-import LoginScreen from './components/LoginScreen'
-import { sessionUnlocked, sessionLock } from './utils/auth'
+import Landing from './pages/Landing'
+import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
+import { getCurrentUser, clearSession } from './utils/auth'
 
 // Code-split pages — only loaded when visited
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -86,24 +90,37 @@ function AppInner({ onLock }) {
   )
 }
 
-export default function App() {
-  const [unlocked, setUnlocked] = useState(() => sessionUnlocked())
+function ProtectedApp({ user, onLock }) {
+  if (!user) return <Navigate to="/login" replace />
 
-  function handleLogin() { setUnlocked(true) }
-  function handleLock()  { sessionLock(); setUnlocked(false) }
+  return (
+    <AppProvider userId={user.id}>
+      <AppInner onLock={onLock} />
+    </AppProvider>
+  )
+}
+
+export default function App() {
+  const [user, setUser] = useState(() => getCurrentUser())
+
+  function handleLogin(u) { setUser(u) }
+  function handleLock()   { clearSession(); setUser(null) }
 
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        {!unlocked ? (
-          <LoginScreen onLogin={handleLogin} />
-        ) : (
-          <AppProvider>
-            <BrowserRouter basename="/web">
-              <AppInner onLock={handleLock} />
-            </BrowserRouter>
-          </AppProvider>
-        )}
+        <BrowserRouter basename="/web">
+          <Routes>
+            <Route path="/"                element={<Landing />} />
+            <Route path="/login"           element={<Login onLogin={handleLogin} />} />
+            <Route path="/register"        element={<Register onLogin={handleLogin} />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password"  element={<ResetPassword />} />
+            <Route path="/app/*"           element={<ProtectedApp user={user} onLock={handleLock} />} />
+            {/* Catch-all redirect */}
+            <Route path="*"               element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
       </ThemeProvider>
     </ErrorBoundary>
   )

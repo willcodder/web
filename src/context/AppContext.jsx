@@ -161,14 +161,39 @@ const initialState = {
   ],
 }
 
-function loadState() {
+function loadState(userId) {
   try {
-    const saved = localStorage.getItem('audiovisual_app_state')
-    if (saved) return JSON.parse(saved)
+    if (userId) {
+      // Try user-specific key first
+      const saved = localStorage.getItem(`av_state_${userId}`)
+      if (saved) return JSON.parse(saved)
+      // Migrate old single-user state if it exists
+      const legacy = localStorage.getItem('audiovisual_app_state')
+      if (legacy) {
+        const parsed = JSON.parse(legacy)
+        localStorage.setItem(`av_state_${userId}`, legacy)
+        return parsed
+      }
+    } else {
+      const saved = localStorage.getItem('audiovisual_app_state')
+      if (saved) return JSON.parse(saved)
+    }
   } catch (e) {
     console.error('Error loading state', e)
   }
   return initialState
+}
+
+function saveState(userId, state) {
+  try {
+    if (userId) {
+      localStorage.setItem(`av_state_${userId}`, JSON.stringify(state))
+    } else {
+      localStorage.setItem('audiovisual_app_state', JSON.stringify(state))
+    }
+  } catch (e) {
+    console.error('Error saving state', e)
+  }
 }
 
 function reducer(state, action) {
@@ -253,8 +278,8 @@ function generateRecurringInvoices(invoices) {
   return newInvoices
 }
 
-export function AppProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, null, loadState)
+export function AppProvider({ children, userId }) {
+  const [state, dispatch] = useReducer(reducer, null, () => loadState(userId))
 
   // Generate recurring invoices on mount
   useEffect(() => {
@@ -265,8 +290,8 @@ export function AppProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem('audiovisual_app_state', JSON.stringify(state))
-  }, [state])
+    saveState(userId, state)
+  }, [state, userId])
 
   return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>
 }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Save, Building2, Moon, Sun, Receipt, Globe, ShieldCheck, Eye, EyeOff, FileSpreadsheet } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
-import { checkPassword, setPassword } from '../utils/auth'
+import { login, getUsers, getSession, getCurrentUser } from '../utils/auth'
 import ImportExcel from '../components/ImportExcel'
 
 export default function Settings() {
@@ -19,11 +19,23 @@ export default function Settings() {
 
   async function savePwd() {
     setPwdError(''); setPwdOk(false)
-    if (pwdForm.next.length < 4) { setPwdError('Mínimo 4 caracteres'); return }
+    if (pwdForm.next.length < 6) { setPwdError('Mínimo 6 caracteres'); return }
     if (pwdForm.next !== pwdForm.confirm) { setPwdError('Las contraseñas no coinciden'); return }
-    const ok = await checkPassword(pwdForm.current)
-    if (!ok) { setPwdError('Contraseña actual incorrecta'); return }
-    await setPassword(pwdForm.next)
+    const currentUser = getCurrentUser()
+    if (!currentUser) { setPwdError('No hay sesión activa'); return }
+    const result = await login(currentUser.email, pwdForm.current)
+    if (result.error) { setPwdError('Contraseña actual incorrecta'); return }
+    // Update password hash using sha256 via resetPassword logic directly
+    const sha256 = async (str) => {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+    }
+    const users = getUsers()
+    const idx = users.findIndex(u => u.id === currentUser.id)
+    if (idx !== -1) {
+      users[idx].passwordHash = await sha256(pwdForm.next)
+      localStorage.setItem('av_users', JSON.stringify(users))
+    }
     setPwdForm({ current: '', next: '', confirm: '' })
     setPwdOk(true)
     setTimeout(() => setPwdOk(false), 2500)
