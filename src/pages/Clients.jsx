@@ -41,7 +41,7 @@ export default function Clients() {
 
   const columns = [
     {
-      header: 'Cliente',
+      header: 'Cliente', sortKey: 'name',
       render: c => (
         <div>
           <p className="font-medium text-gray-900 dark:text-white">{c.name}</p>
@@ -49,9 +49,9 @@ export default function Clients() {
         </div>
       ),
     },
-    { header: 'Email', render: c => <span className="text-gray-600 dark:text-gray-300">{c.email}</span> },
+    { header: 'Email', sortKey: 'email', render: c => <span className="text-gray-600 dark:text-gray-300">{c.email}</span> },
     { header: 'Teléfono', render: c => <span className="text-gray-600 dark:text-gray-300">{c.phone}</span> },
-    { header: 'Ciudad', render: c => <span className="text-gray-600 dark:text-gray-300">{c.city}</span> },
+    { header: 'Ciudad', sortKey: 'city', render: c => <span className="text-gray-600 dark:text-gray-300">{c.city}</span> },
     {
       header: '', cellClassName: 'text-right',
       render: c => (

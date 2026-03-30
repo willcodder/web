@@ -60,18 +60,18 @@ export default function Quotes() {
   }
 
   const columns = [
-    { header: 'Número', render: q => <span className="font-mono text-sm font-medium text-gray-900 dark:text-white">{q.number}</span> },
-    { header: 'Cliente', render: q => <span className="text-gray-700 dark:text-gray-300">{getClient(q.clientId)?.name || '-'}</span> },
-    { header: 'Fecha', render: q => <span className="text-gray-500 dark:text-gray-400 text-sm">{formatDate(q.date)}</span> },
+    { header: 'Número', sortKey: 'number', render: q => <span className="font-mono text-sm font-medium text-gray-900 dark:text-white">{q.number}</span> },
+    { header: 'Cliente', sortFn: q => getClient(q.clientId)?.name || '', render: q => <span className="text-gray-700 dark:text-gray-300">{getClient(q.clientId)?.name || '-'}</span> },
+    { header: 'Fecha', sortKey: 'date', render: q => <span className="text-gray-500 dark:text-gray-400 text-sm">{formatDate(q.date)}</span> },
     {
-      header: 'Válido hasta',
+      header: 'Válido hasta', sortKey: 'validUntil',
       render: q => {
         const expired = q.status === 'pending' && new Date(q.validUntil) < new Date()
         return <span className={`text-sm ${expired ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>{formatDate(q.validUntil)}</span>
       },
     },
-    { header: 'Estado', render: q => <Badge status={q.status} /> },
-    { header: 'Total', cellClassName: 'text-right', render: q => <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(calcDocumentTotals(q.lines).total)}</span> },
+    { header: 'Estado', sortKey: 'status', render: q => <Badge status={q.status} /> },
+    { header: 'Total', cellClassName: 'text-right', sortFn: q => calcDocumentTotals(q.lines).total, render: q => <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(calcDocumentTotals(q.lines).total)}</span> },
     {
       header: '', cellClassName: 'text-right',
       render: q => (

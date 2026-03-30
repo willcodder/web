@@ -49,7 +49,7 @@ export default function Expenses() {
 
   const columns = [
     {
-      header: 'Descripción',
+      header: 'Descripción', sortKey: 'description',
       render: e => (
         <div>
           <p className="font-medium text-gray-900 dark:text-white text-sm">{e.description}</p>
@@ -58,14 +58,14 @@ export default function Expenses() {
       ),
     },
     {
-      header: 'Categoría',
+      header: 'Categoría', sortKey: 'category',
       render: e => <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{e.category}</span>,
     },
-    { header: 'Fecha', render: e => <span className="text-gray-500 dark:text-gray-400 text-sm">{formatDate(e.date)}</span> },
-    { header: 'Base', cellClassName: 'text-right', render: e => <span className="text-gray-700 dark:text-gray-300">{formatCurrency(e.amount)}</span> },
-    { header: 'IVA', cellClassName: 'text-center', render: e => <span className="text-gray-500 dark:text-gray-400 text-sm">{e.tax}%</span> },
-    { header: 'Total', cellClassName: 'text-right', render: e => <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(e.amount * (1 + e.tax / 100))}</span> },
-    { header: 'Estado', render: e => <Badge status={e.status} /> },
+    { header: 'Fecha', sortKey: 'date', render: e => <span className="text-gray-500 dark:text-gray-400 text-sm">{formatDate(e.date)}</span> },
+    { header: 'Base', cellClassName: 'text-right', sortKey: 'amount', render: e => <span className="text-gray-700 dark:text-gray-300">{formatCurrency(e.amount)}</span> },
+    { header: 'IVA', cellClassName: 'text-center', sortKey: 'tax', render: e => <span className="text-gray-500 dark:text-gray-400 text-sm">{e.tax}%</span> },
+    { header: 'Total', cellClassName: 'text-right', sortFn: e => e.amount * (1 + e.tax / 100), render: e => <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(e.amount * (1 + e.tax / 100))}</span> },
+    { header: 'Estado', sortKey: 'status', render: e => <Badge status={e.status} /> },
     {
       header: '', cellClassName: 'text-right',
       render: e => (

@@ -141,7 +141,7 @@ export default function Invoices() {
       ),
     },
     {
-      header: 'Número', mobileLabel: '',
+      header: 'Número', mobileLabel: '', sortKey: 'number',
       render: inv => (
         <div>
           <div className="flex items-center gap-2">
@@ -152,17 +152,23 @@ export default function Invoices() {
         </div>
       ),
     },
-    { header: 'Cliente', render: inv => <span className="text-gray-700 dark:text-gray-300">{getClient(inv.clientId)?.name || '-'}</span> },
-    { header: 'Fecha', mobileLabel: 'Fecha', render: inv => <span className="text-gray-500 dark:text-gray-400 text-sm">{formatDate(inv.date)}</span> },
     {
-      header: 'Vence', mobileLabel: 'Vence',
+      header: 'Cliente', sortFn: inv => getClient(inv.clientId)?.name || '',
+      render: inv => <span className="text-gray-700 dark:text-gray-300">{getClient(inv.clientId)?.name || '-'}</span>,
+    },
+    {
+      header: 'Fecha', mobileLabel: 'Fecha', sortKey: 'date',
+      render: inv => <span className="text-gray-500 dark:text-gray-400 text-sm">{formatDate(inv.date)}</span>,
+    },
+    {
+      header: 'Vence', mobileLabel: 'Vence', sortKey: 'dueDate',
       render: inv => {
         const isOverdue = inv.status === 'pending' && new Date(inv.dueDate) < new Date()
         return <span className={`text-sm ${isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>{formatDate(inv.dueDate)}</span>
       },
     },
     {
-      header: 'Estado', mobileLabel: 'Estado',
+      header: 'Estado', mobileLabel: 'Estado', sortKey: 'status',
       render: inv => {
         const effectiveStatus = inv.status === 'pending' && new Date(inv.dueDate) < new Date() ? 'overdue' : inv.status
         return <Badge status={effectiveStatus} />
@@ -170,6 +176,7 @@ export default function Invoices() {
     },
     {
       header: 'Total', mobileLabel: 'Total', cellClassName: 'text-right',
+      sortFn: inv => calcDocumentTotals(inv.lines).total,
       render: inv => <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(calcDocumentTotals(inv.lines).total)}</span>,
     },
     {
