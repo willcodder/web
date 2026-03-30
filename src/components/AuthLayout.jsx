@@ -8,7 +8,7 @@ export default function AuthLayout({ title, subtitle, children, backTo, backLabe
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-6"
+      className="min-h-screen w-full flex flex-col items-center justify-center px-6"
       style={{
         background: dark ? '#000' : '#F2F2F7',
         backgroundImage: 'radial-gradient(ellipse at 60% 0%, rgba(0,122,255,0.08) 0%, transparent 60%)',

@@ -5,7 +5,7 @@ export default function Landing() {
   const navigate = useNavigate()
 
   return (
-    <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif', minHeight: '100vh', background: '#F2F2F7' }}>
+    <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif', minHeight: '100vh', width: '100%', background: '#F2F2F7' }}>
 
       {/* Nav */}
       <nav style={{
