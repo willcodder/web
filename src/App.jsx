@@ -11,22 +11,52 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import { getCurrentUser, clearSession } from './utils/auth'
 
+// Lazy import with automatic cache-bust retry on stale chunk error
+function lazyWithRetry(fn) {
+  return lazy(() =>
+    fn().catch(err => {
+      const isChunkError = err?.message?.includes('Failed to fetch dynamically imported module') ||
+                           err?.message?.includes('Importing a module script failed')
+      if (isChunkError && !sessionStorage.getItem('chunk_reload')) {
+        sessionStorage.setItem('chunk_reload', '1')
+        window.location.reload()
+        return new Promise(() => {}) // never resolves — reload happens
+      }
+      throw err
+    })
+  )
+}
+
 // Code-split pages — only loaded when visited
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Invoices  = lazy(() => import('./pages/Invoices'))
-const Quotes    = lazy(() => import('./pages/Quotes'))
-const Expenses  = lazy(() => import('./pages/Expenses'))
-const Clients   = lazy(() => import('./pages/Clients'))
-const Services  = lazy(() => import('./pages/Services'))
-const Settings  = lazy(() => import('./pages/Settings'))
-const Analytics = lazy(() => import('./pages/Analytics'))
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'))
+const Invoices  = lazyWithRetry(() => import('./pages/Invoices'))
+const Quotes    = lazyWithRetry(() => import('./pages/Quotes'))
+const Expenses  = lazyWithRetry(() => import('./pages/Expenses'))
+const Clients   = lazyWithRetry(() => import('./pages/Clients'))
+const Services  = lazyWithRetry(() => import('./pages/Services'))
+const Settings  = lazyWithRetry(() => import('./pages/Settings'))
+const Analytics = lazyWithRetry(() => import('./pages/Analytics'))
 
 // Catch React render errors and show them instead of blank page
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
   static getDerivedStateFromError(err) { return { error: err } }
+  componentDidMount() {
+    // Clear the chunk-reload flag once the app mounts successfully
+    sessionStorage.removeItem('chunk_reload')
+  }
   render() {
     if (this.state.error) {
+      const isChunkError = String(this.state.error?.message).includes('Failed to fetch dynamically imported module') ||
+                           String(this.state.error?.message).includes('Importing a module script failed')
+      if (isChunkError) {
+        // Auto-reload once for stale cache errors
+        if (!sessionStorage.getItem('chunk_reload')) {
+          sessionStorage.setItem('chunk_reload', '1')
+          window.location.reload()
+          return null
+        }
+      }
       return (
         <div style={{ padding: 32, fontFamily: 'system-ui', background: '#ffffff', minHeight: '100vh', color: '#1c1c1e' }}>
           <h2 style={{ color: '#FF3B30', marginBottom: 8 }}>Algo ha fallado</h2>
@@ -36,7 +66,7 @@ class ErrorBoundary extends Component {
             {String(this.state.error?.stack || '')}
           </pre>
           <button
-            onClick={() => { this.setState({ error: null }); window.location.reload() }}
+            onClick={() => { sessionStorage.removeItem('chunk_reload'); this.setState({ error: null }); window.location.reload() }}
             style={{ marginTop: 16, padding: '10px 20px', background: '#007AFF', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}
           >
             Recargar
