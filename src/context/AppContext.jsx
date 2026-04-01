@@ -219,6 +219,16 @@ function reducer(state, action) {
       return { ...state, invoices: [...state.invoices, action.payload] }
     case 'ADD_INVOICES_BATCH':
       return { ...state, invoices: [...state.invoices, ...action.payload] }
+    case 'REPLACE_IMPORTS': {
+      // Remove all previously-imported invoices/clients (id starts with 'imp-'), then add the new ones
+      const cleanInvoices = state.invoices.filter(i => !i.id.startsWith('imp-'))
+      const cleanClients  = state.clients.filter(c => !c.id.startsWith('imp-'))
+      return {
+        ...state,
+        invoices: [...cleanInvoices, ...action.payload.invoices],
+        clients:  [...cleanClients,  ...action.payload.clients],
+      }
+    }
     case 'UPDATE_INVOICE':
       return { ...state, invoices: state.invoices.map(i => i.id === action.payload.id ? action.payload : i) }
     case 'DELETE_INVOICE':

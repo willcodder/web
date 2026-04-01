@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { TrendingUp, TrendingDown, Users, Euro, Award, Calendar } from 'lucide-react'
+import { TrendingUp, TrendingDown, Users, Award } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, AreaChart, Area,
@@ -37,7 +37,7 @@ function KpiCard({ label, value, sub, color = '#007AFF', icon: Icon, trend }) {
       </div>
       <p className="text-[24px] font-bold text-gray-900 dark:text-white tabular-nums leading-none mb-1">{value}</p>
       {sub && <p className="text-[11px] text-gray-400 dark:text-[#636366]">{sub}</p>}
-      {trend !== undefined && (
+      {trend != null && (
         <div className={`flex items-center gap-1 mt-2 text-[11px] font-semibold ${positive ? 'text-[#34C759]' : 'text-[#FF3B30]'}`}>
           {positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
           {positive ? '+' : ''}{trend.toFixed(1)}% vs año anterior
@@ -185,7 +185,7 @@ export default function Analytics() {
       {/* ── KPI row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <KpiCard label="Facturado" value={formatCurrency(kpis.cur.billed)}
-          sub={`${kpis.cur.count} facturas emitidas`} color="#007AFF" icon={Euro}
+          sub={`${kpis.cur.count} facturas emitidas`} color="#007AFF" icon={TrendingUp}
           trend={kpis.trendBilled} />
         <KpiCard label="Cobrado" value={formatCurrency(kpis.cur.paid)}
           sub={`Tasa cobro ${kpis.cobro.toFixed(0)}%`} color="#34C759" icon={TrendingUp}

@@ -80,13 +80,14 @@ export default function ImportExcel() {
   const { state, dispatch } = useApp()
   const fileRef = useRef(null)
 
-  const [rows, setRows]         = useState(null)   // raw Excel rows
+  const [rows, setRows]         = useState(null)
   const [headers, setHeaders]   = useState([])
   const [mapping, setMapping]   = useState({})
   const [preview, setPreview]   = useState([])
-  const [step, setStep]         = useState('upload') // upload | map | confirm | done
+  const [step, setStep]         = useState('upload')
   const [imported, setImported] = useState(0)
   const [fileName, setFileName] = useState('')
+  const [replaceMode, setReplaceMode] = useState(true)
 
   function handleFile(file) {
     if (!file) return
@@ -152,8 +153,12 @@ export default function ImportExcel() {
       })
     })
 
-    newClients.forEach(c  => dispatch({ type: 'ADD_CLIENT',  payload: c }))
-    newInvoices.forEach(inv => dispatch({ type: 'ADD_INVOICE', payload: inv }))
+    if (replaceMode) {
+      dispatch({ type: 'REPLACE_IMPORTS', payload: { invoices: newInvoices, clients: newClients } })
+    } else {
+      newClients.forEach(c   => dispatch({ type: 'ADD_CLIENT',  payload: c }))
+      newInvoices.forEach(inv => dispatch({ type: 'ADD_INVOICE', payload: inv }))
+    }
     setImported(newInvoices.length)
     setStep('done')
   }
@@ -247,6 +252,26 @@ export default function ImportExcel() {
               </div>
             </div>
           )}
+
+          {/* Mode toggle */}
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-[#3A3A3C] bg-gray-50 dark:bg-[#2C2C2E] px-4 py-3">
+            <div>
+              <p className="text-[13px] font-semibold text-gray-800 dark:text-white">
+                {replaceMode ? 'Reemplazar importaciones anteriores' : 'Añadir a los datos existentes'}
+              </p>
+              <p className="text-[11px] text-gray-400 dark:text-[#636366] mt-0.5">
+                {replaceMode
+                  ? 'Borrará facturas y clientes importados previamente con este mismo modo'
+                  : 'Se añadirán encima de lo que ya hay sin borrar nada'}
+              </p>
+            </div>
+            <button
+              onClick={() => setReplaceMode(m => !m)}
+              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-4 ${replaceMode ? 'bg-[#007AFF]' : 'bg-gray-300 dark:bg-[#3A3A3C]'}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${replaceMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
 
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={reset} className="px-4 py-2 text-[13px] text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
