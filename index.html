@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Facturación Audiovisual</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <!-- GitHub Pages SPA: restore path from redirect query param -->
     <script>
       (function() {
@@ -55,29 +58,33 @@
 
     <!-- Catch load errors BEFORE the module script runs -->
     <script>
-      window.__loadError = null;
       window.addEventListener('error', function(e) {
         if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
+          var url = e.target.src || e.target.href || '';
+          // If browser has a stale/dev index.html (references /src/ instead of built assets),
+          // force a hard reload with a cache-busting param — once only to avoid loops.
+          if ((url.indexOf('/src/') !== -1 || url.indexOf('main.jsx') !== -1) &&
+              !sessionStorage.getItem('hard_reload')) {
+            sessionStorage.setItem('hard_reload', '1');
+            window.location.replace(window.location.pathname + '?v=' + Date.now());
+            return;
+          }
+          // Also auto-reload stale hashed chunks (built assets that no longer exist)
+          if (url.indexOf('/assets/') !== -1 && !sessionStorage.getItem('hard_reload')) {
+            sessionStorage.setItem('hard_reload', '1');
+            window.location.replace(window.location.pathname + '?v=' + Date.now());
+            return;
+          }
           var fb = document.getElementById('loading-fallback');
           if (fb) {
             fb.innerHTML =
               '<div class="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 10 4.553-2.069A1 1 0 0 1 21 8.871V15.13a1 1 0 0 1-1.447.899L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2H3V8z"/></svg></div>' +
               '<p>Error al cargar la aplicación</p>' +
-              '<div class="err">No se pudo cargar: ' + (e.target.src || e.target.href || 'recurso desconocido') + '</div>' +
-              '<button onclick="location.reload()">Recargar página</button>';
+              '<div class="err">No se pudo cargar: ' + url + '</div>' +
+              '<button onclick="sessionStorage.clear();location.reload()">Recargar página</button>';
           }
         }
       }, true);
-      window.onerror = function(msg, src, line) {
-        var fb = document.getElementById('loading-fallback');
-        if (fb) {
-          fb.innerHTML =
-            '<div class="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 10 4.553-2.069A1 1 0 0 1 21 8.871V15.13a1 1 0 0 1-1.447.899L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2H3V8z"/></svg></div>' +
-            '<p>Error de JavaScript</p>' +
-            '<div class="err">' + msg + (src ? ('\n' + src + ':' + line) : '') + '</div>' +
-            '<button onclick="location.reload()">Recargar página</button>';
-        }
-      };
     </script>
 
     <script type="module" src="/src/main.jsx"></script>
