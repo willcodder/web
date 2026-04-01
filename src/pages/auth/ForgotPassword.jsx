@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mail } from 'lucide-react'
+import { Mail, CheckCircle } from 'lucide-react'
 import AuthLayout from '../../components/AuthLayout'
-import { getUsers } from '../../utils/auth'
+import { sendPasswordResetEmail } from '../../utils/auth-supabase'
 import { useTheme } from '../../context/ThemeContext'
 
 export default function ForgotPassword() {
@@ -11,6 +11,7 @@ export default function ForgotPassword() {
   const [email, setEmail]   = useState('')
   const [error, setError]   = useState('')
   const [loading, setLoading] = useState(false)
+  const [sent, setSent] = useState(false)
 
   const inputStyle = {
     background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.6)',
@@ -23,16 +24,34 @@ export default function ForgotPassword() {
     setError('')
     setLoading(true)
     try {
-      const users = getUsers()
-      const found = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim())
-      if (!found) {
-        setError('No existe ninguna cuenta con ese email')
+      const result = await sendPasswordResetEmail(email.trim())
+      if (result.error) {
+        setError(result.error)
         return
       }
-      navigate(`/reset-password?email=${encodeURIComponent(email.toLowerCase().trim())}`)
+      setSent(true)
     } finally {
       setLoading(false)
     }
+  }
+
+  if (sent) {
+    return (
+      <AuthLayout
+        title="Email enviado"
+        subtitle="Revisa tu bandeja de entrada"
+        backTo="/login"
+        backLabel="Volver"
+      >
+        <div className="flex flex-col items-center gap-3 py-6">
+          <div className="w-12 h-12 rounded-full bg-[#34C759]/10 flex items-center justify-center">
+            <CheckCircle size={24} className="text-[#34C759]" />
+          </div>
+          <p className="text-[15px] font-semibold text-gray-900 dark:text-white text-center">Email de recuperación enviado</p>
+          <p className="text-[12px] text-gray-400 dark:text-[#636366] text-center">Hemos enviado un email a {email} con instrucciones para cambiar tu contraseña.</p>
+        </div>
+      </AuthLayout>
+    )
   }
 
   return (
@@ -65,7 +84,7 @@ export default function ForgotPassword() {
           style={{ background: '#007AFF', border: 'none', cursor: 'pointer' }}
         >
           <Mail size={15} />
-          {loading ? 'Comprobando…' : 'Continuar'}
+          {loading ? 'Enviando…' : 'Enviar email'}
         </button>
       </form>
     </AuthLayout>

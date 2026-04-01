@@ -9,7 +9,8 @@ import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
-import { getCurrentUser, clearSession } from './utils/auth'
+import { getCurrentUser, logout } from './utils/auth-supabase'
+import { supabase } from './utils/supabase'
 
 // Lazy import with automatic cache-bust retry on stale chunk error
 function lazyWithRetry(fn) {
@@ -86,6 +87,17 @@ function PageLoader() {
   )
 }
 
+function AuthLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#1c1c1e]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <p className="text-sm text-gray-500">Cargando…</p>
+      </div>
+    </div>
+  )
+}
+
 function AppInner({ onLock }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [collapsed, setCollapsed]   = useState(false)
@@ -133,10 +145,39 @@ function ProtectedApp({ user, onLock }) {
 }
 
 export default function App() {
-  const [user, setUser] = useState(() => getCurrentUser())
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Check initial auth state
+    getCurrentUser().then(u => {
+      setUser(u)
+      setLoading(false)
+    }).catch(() => {
+      setLoading(false)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        const u = await getCurrentUser()
+        setUser(u)
+      } else {
+        setUser(null)
+      }
+    })
+
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [])
 
   function handleLogin(u) { setUser(u) }
-  function handleLock()   { clearSession(); setUser(null) }
+  function handleLock()   { logout(); setUser(null) }
+
+  if (loading) {
+    return <AuthLoader />
+  }
 
   return (
     <ErrorBoundary>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff, LogIn, Download, Upload, X } from 'lucide-react'
 import AuthLayout from '../../components/AuthLayout'
-import { login, setSession, getUsers } from '../../utils/auth'
+import { login } from '../../utils/auth-supabase'
 import { useTheme } from '../../context/ThemeContext'
 
 export default function Login({ onLogin }) {
@@ -14,11 +14,7 @@ export default function Login({ onLogin }) {
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
 
-  // Cross-browser transfer
-  const [showTransfer, setShowTransfer] = useState(false)
-  const [transferCode, setTransferCode] = useState('')
-  const [importText, setImportText]     = useState('')
-  const [importMsg, setImportMsg]       = useState('')
+  // Note: Cross-browser transfer removed - Supabase syncs data automatically across devices
 
   const inputCls = `w-full px-4 py-3.5 rounded-[14px] text-[15px] border transition-all outline-none`
   const inputStyle = (dark) => ({
@@ -34,7 +30,6 @@ export default function Login({ onLogin }) {
     try {
       const result = await login(email, password)
       if (result.error) { setError(result.error); return }
-      setSession(result.user.id)
       onLogin(result.user)
       navigate('/app/')
     } finally {
@@ -42,41 +37,6 @@ export default function Login({ onLogin }) {
     }
   }
 
-  function exportAccount() {
-    const users = getUsers()
-    if (!users.length) { alert('No hay ninguna cuenta guardada en este navegador.'); return }
-    // Export credentials + app state of each user
-    const appStates = {}
-    users.forEach(u => {
-      const val = localStorage.getItem(`av_state_${u.id}`)
-      if (val) appStates[`av_state_${u.id}`] = val
-    })
-    const code = btoa(unescape(encodeURIComponent(JSON.stringify({ users, appStates }))))
-    setTransferCode(code)
-  }
-
-  function importAccount() {
-    try {
-      const parsed = JSON.parse(decodeURIComponent(escape(atob(importText.trim()))))
-      // Support both old format (plain array) and new format ({ users, appStates })
-      const users     = Array.isArray(parsed) ? parsed : parsed.users
-      const appStates = Array.isArray(parsed) ? {} : (parsed.appStates || {})
-      if (!Array.isArray(users) || !users[0]?.passwordHash) throw new Error()
-      // Merge users
-      const existing = getUsers()
-      const merged = [...existing]
-      users.forEach(u => { if (!merged.find(e => e.id === u.id)) merged.push(u) })
-      localStorage.setItem('av_users', JSON.stringify(merged))
-      // Restore app state (don't overwrite if this browser already has data)
-      Object.entries(appStates).forEach(([key, val]) => {
-        if (!localStorage.getItem(key)) localStorage.setItem(key, val)
-      })
-      setImportMsg('✓ Cuenta y datos importados. Ya puedes iniciar sesión.')
-      setImportText('')
-    } catch {
-      setImportMsg('Código incorrecto. Cópialo exactamente desde el otro navegador.')
-    }
-  }
 
   return (
     <AuthLayout
@@ -132,65 +92,8 @@ export default function Login({ onLogin }) {
           ¿No tienes cuenta?{' '}
           <Link to="/register" style={{ color: '#007AFF', fontWeight: 500 }}>Crear cuenta</Link>
         </p>
-        <button onClick={() => setShowTransfer(s => !s)}
-          className="text-[12px] mt-1"
-          style={{ color: dark ? '#636366' : '#8e8e93', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
-          Cambiar de navegador / dispositivo
-        </button>
       </div>
 
-      {/* ── Transfer panel ── */}
-      {showTransfer && (
-        <div className="mt-4 rounded-[18px] overflow-hidden" style={{ background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', border: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)' }}>
-          <div className="flex items-center justify-between px-4 pt-4 pb-2">
-            <p className="text-[13px] font-semibold" style={{ color: dark ? '#fff' : '#1c1c1e' }}>Transferir cuenta a este navegador</p>
-            <button onClick={() => { setShowTransfer(false); setTransferCode(''); setImportText(''); setImportMsg('') }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: dark ? '#636366' : '#8e8e93' }}>
-              <X size={14} />
-            </button>
-          </div>
-
-          {/* Export */}
-          <div className="px-4 pb-3">
-            <p className="text-[11px] mb-2" style={{ color: dark ? '#8e8e93' : '#636366' }}>
-              <strong>Paso 1</strong> — En Chrome (donde ya tienes tus facturas), pulsa este botón y copia el código:
-            </p>
-            <button onClick={exportAccount}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold"
-              style={{ background: '#34C759', color: '#fff', border: 'none', cursor: 'pointer' }}>
-              <Download size={12} /> Generar código de exportación
-            </button>
-            {transferCode && (
-              <div className="mt-2">
-                <textarea readOnly value={transferCode} rows={3}
-                  className="w-full text-[10px] rounded-xl p-2 font-mono resize-none"
-                  style={{ background: dark ? 'rgba(0,0,0,0.3)' : '#fff', border: dark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)', color: dark ? '#ccc' : '#333' }}
-                  onClick={e => e.target.select()} />
-                <p className="text-[10px] mt-1" style={{ color: '#34C759' }}>Selecciona todo el texto y cópialo (Cmd+A, Cmd+C)</p>
-              </div>
-            )}
-          </div>
-
-          {/* Import */}
-          <div className="px-4 pb-4" style={{ borderTop: dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)', paddingTop: 12 }}>
-            <p className="text-[11px] mb-2" style={{ color: dark ? '#8e8e93' : '#636366' }}>
-              <strong>Paso 2</strong> — En Safari, pega el código aquí. Se copiarán tu cuenta <strong>y todas tus facturas</strong>:
-            </p>
-            <textarea value={importText} onChange={e => { setImportText(e.target.value); setImportMsg('') }}
-              placeholder="Pega el código aquí…" rows={3}
-              className="w-full text-[10px] rounded-xl p-2 font-mono resize-none"
-              style={{ background: dark ? 'rgba(0,0,0,0.3)' : '#fff', border: dark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)', color: dark ? '#ccc' : '#333' }} />
-            <button onClick={importAccount} disabled={!importText.trim()}
-              className="mt-2 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold disabled:opacity-40"
-              style={{ background: '#007AFF', color: '#fff', border: 'none', cursor: 'pointer' }}>
-              <Upload size={12} /> Importar cuenta
-            </button>
-            {importMsg && (
-              <p className="text-[12px] mt-2 font-medium" style={{ color: importMsg.startsWith('✓') ? '#34C759' : '#FF3B30' }}>{importMsg}</p>
-            )}
-          </div>
-        </div>
-      )}
     </AuthLayout>
   )
 }
