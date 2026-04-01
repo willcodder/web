@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useEffect } from 'react'
+import { createContext, useContext, useReducer, useEffect, useState } from 'react'
+import { supabase } from '../utils/supabase'
 
 const AppContext = createContext(null)
 
@@ -161,13 +162,11 @@ const initialState = {
   ],
 }
 
-function loadState(userId) {
+function loadLocalState(userId) {
   try {
     if (userId) {
-      // Try user-specific key first
       const saved = localStorage.getItem(`av_state_${userId}`)
       if (saved) return JSON.parse(saved)
-      // Migrate old single-user state if it exists
       const legacy = localStorage.getItem('audiovisual_app_state')
       if (legacy) {
         const parsed = JSON.parse(legacy)
@@ -179,25 +178,54 @@ function loadState(userId) {
       if (saved) return JSON.parse(saved)
     }
   } catch (e) {
-    console.error('Error loading state', e)
+    console.error('Error loading local state', e)
   }
   return initialState
 }
 
-function saveState(userId, state) {
+function saveLocalState(userId, state) {
   try {
-    if (userId) {
-      localStorage.setItem(`av_state_${userId}`, JSON.stringify(state))
-    } else {
-      localStorage.setItem('audiovisual_app_state', JSON.stringify(state))
-    }
+    const key = userId ? `av_state_${userId}` : 'audiovisual_app_state'
+    localStorage.setItem(key, JSON.stringify(state))
   } catch (e) {
-    console.error('Error saving state', e)
+    console.error('Error saving local state', e)
+  }
+}
+
+async function loadCloudState(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('app_state')
+      .select('state')
+      .eq('user_id', userId)
+      .single()
+    if (error || !data) return null
+    return data.state
+  } catch (e) {
+    console.error('Error loading cloud state', e)
+    return null
+  }
+}
+
+async function saveCloudState(userId, state) {
+  try {
+    const { error } = await supabase
+      .from('app_state')
+      .upsert(
+        { user_id: userId, state, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      )
+    if (error) console.error('Error saving cloud state', error)
+  } catch (e) {
+    console.error('Error saving cloud state', e)
   }
 }
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'LOAD_STATE':
+      return { ...initialState, ...action.payload }
+
     case 'UPDATE_COMPANY':
       return { ...state, company: { ...state.company, ...action.payload } }
 
@@ -289,19 +317,46 @@ function generateRecurringInvoices(invoices) {
 }
 
 export function AppProvider({ children, userId }) {
-  const [state, dispatch] = useReducer(reducer, null, () => loadState(userId))
+  // Load local state immediately (fast, no flicker)
+  const [state, dispatch] = useReducer(reducer, null, () => loadLocalState(userId))
+  const [synced, setSynced] = useState(false)
 
-  // Generate recurring invoices on mount
+  // On mount: try to load from Supabase, fall back to local
   useEffect(() => {
+    if (!userId) { setSynced(true); return }
+
+    loadCloudState(userId).then(cloudState => {
+      if (cloudState) {
+        // Supabase has data — use it (authoritative source)
+        dispatch({ type: 'LOAD_STATE', payload: cloudState })
+      } else {
+        // First login on this account — migrate local data to cloud
+        const local = loadLocalState(userId)
+        if (local !== initialState) {
+          saveCloudState(userId, local)
+        }
+      }
+      setSynced(true)
+    })
+  }, [userId])
+
+  // Generate recurring invoices after sync
+  useEffect(() => {
+    if (!synced) return
     const newInvoices = generateRecurringInvoices(state.invoices)
     if (newInvoices.length > 0) {
       dispatch({ type: 'ADD_INVOICES_BATCH', payload: newInvoices })
     }
-  }, [])
+  }, [synced])
 
+  // Save to both localStorage and Supabase on every state change
   useEffect(() => {
-    saveState(userId, state)
-  }, [state, userId])
+    if (!synced) return
+    saveLocalState(userId, state)
+    if (userId) {
+      saveCloudState(userId, state)
+    }
+  }, [state, userId, synced])
 
   return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>
 }
