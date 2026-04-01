@@ -143,14 +143,13 @@ export default function App() {
       <ThemeProvider>
         <BrowserRouter basename="/web">
           <Routes>
-            <Route path="/"                element={<Navigate to="/login" replace />} />
-            <Route path="/login"           element={<Login onLogin={handleLogin} />} />
-            <Route path="/register"        element={<Register onLogin={handleLogin} />} />
+            <Route path="/login"           element={user ? <Navigate to="/app/" replace /> : <Login onLogin={handleLogin} />} />
+            <Route path="/register"        element={user ? <Navigate to="/app/" replace /> : <Register onLogin={handleLogin} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password"  element={<ResetPassword />} />
             <Route path="/app/*"           element={<ProtectedApp user={user} onLock={handleLock} />} />
-            {/* Catch-all redirect */}
-            <Route path="*"               element={<Navigate to="/" replace />} />
+            {/* Cualquier otra ruta → login */}
+            <Route path="*"               element={<Navigate to="/login" replace />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>
