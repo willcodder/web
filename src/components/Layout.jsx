@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Package, FileText, ClipboardList,
   Receipt, Settings, ChevronLeft, ChevronRight, Film,
-  Sun, Moon, Search, Lock
+  Sun, Moon, Search, Lock, BarChart2
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useTheme } from '../context/ThemeContext'
@@ -15,6 +15,7 @@ const navItems = [
   { to: '/app/gastos',        icon: Receipt,         label: 'Gastos' },
   { to: '/app/clientes',      icon: Users,           label: 'Clientes' },
   { to: '/app/servicios',     icon: Package,         label: 'Servicios' },
+  { to: '/app/analitica',     icon: BarChart2,       label: 'Analítica' },
   { to: '/app/configuracion', icon: Settings,        label: 'Ajustes' },
 ]
 

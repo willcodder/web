@@ -19,6 +19,7 @@ const Expenses  = lazy(() => import('./pages/Expenses'))
 const Clients   = lazy(() => import('./pages/Clients'))
 const Services  = lazy(() => import('./pages/Services'))
 const Settings  = lazy(() => import('./pages/Settings'))
+const Analytics = lazy(() => import('./pages/Analytics'))
 
 // Catch React render errors and show them instead of blank page
 class ErrorBoundary extends Component {
@@ -81,6 +82,7 @@ function AppInner({ onLock }) {
             <Route path="/gastos"        element={<Expenses />} />
             <Route path="/clientes"      element={<Clients />} />
             <Route path="/servicios"     element={<Services />} />
+            <Route path="/analitica"     element={<Analytics />} />
             <Route path="/configuracion" element={<Settings />} />
           </Routes>
         </Suspense>

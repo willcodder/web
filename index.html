@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Facturación Audiovisual</title>
+    <!-- GitHub Pages SPA: restore path from redirect query param -->
+    <script>
+      (function() {
+        var params = new URLSearchParams(window.location.search);
+        var p = params.get('p');
+        if (p != null) {
+          var q = params.get('q');
+          var hash = window.location.hash;
+          var newUrl = window.location.pathname + (p ? '/' + p.replace(/~and~/g, '&') : '') +
+            (q ? '?' + q.replace(/~and~/g, '&') : '') + hash;
+          window.history.replaceState(null, null, newUrl);
+        }
+      })();
+    </script>
     <link rel="icon" type="image/png" sizes="192x192" href="/web/icon-192.png" />
     <style>
       #loading-fallback {
