@@ -45,19 +45,33 @@ export default function Login({ onLogin }) {
   function exportAccount() {
     const users = getUsers()
     if (!users.length) { alert('No hay ninguna cuenta guardada en este navegador.'); return }
-    const code = btoa(JSON.stringify(users))
+    // Export credentials + app state of each user
+    const appStates = {}
+    users.forEach(u => {
+      const val = localStorage.getItem(`av_state_${u.id}`)
+      if (val) appStates[`av_state_${u.id}`] = val
+    })
+    const code = btoa(unescape(encodeURIComponent(JSON.stringify({ users, appStates }))))
     setTransferCode(code)
   }
 
   function importAccount() {
     try {
-      const users = JSON.parse(atob(importText.trim()))
+      const parsed = JSON.parse(decodeURIComponent(escape(atob(importText.trim()))))
+      // Support both old format (plain array) and new format ({ users, appStates })
+      const users     = Array.isArray(parsed) ? parsed : parsed.users
+      const appStates = Array.isArray(parsed) ? {} : (parsed.appStates || {})
       if (!Array.isArray(users) || !users[0]?.passwordHash) throw new Error()
+      // Merge users
       const existing = getUsers()
       const merged = [...existing]
       users.forEach(u => { if (!merged.find(e => e.id === u.id)) merged.push(u) })
       localStorage.setItem('av_users', JSON.stringify(merged))
-      setImportMsg('✓ Cuenta importada correctamente. Ya puedes iniciar sesión.')
+      // Restore app state (don't overwrite if this browser already has data)
+      Object.entries(appStates).forEach(([key, val]) => {
+        if (!localStorage.getItem(key)) localStorage.setItem(key, val)
+      })
+      setImportMsg('✓ Cuenta y datos importados. Ya puedes iniciar sesión.')
       setImportText('')
     } catch {
       setImportMsg('Código incorrecto. Cópialo exactamente desde el otro navegador.')
@@ -139,7 +153,7 @@ export default function Login({ onLogin }) {
           {/* Export */}
           <div className="px-4 pb-3">
             <p className="text-[11px] mb-2" style={{ color: dark ? '#8e8e93' : '#636366' }}>
-              <strong>Paso 1</strong> — En el navegador donde ya funciona, pulsa este botón y copia el código:
+              <strong>Paso 1</strong> — En Chrome (donde ya tienes tus facturas), pulsa este botón y copia el código:
             </p>
             <button onClick={exportAccount}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold"
@@ -160,7 +174,7 @@ export default function Login({ onLogin }) {
           {/* Import */}
           <div className="px-4 pb-4" style={{ borderTop: dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)', paddingTop: 12 }}>
             <p className="text-[11px] mb-2" style={{ color: dark ? '#8e8e93' : '#636366' }}>
-              <strong>Paso 2</strong> — En este navegador (Safari), pega el código aquí:
+              <strong>Paso 2</strong> — En Safari, pega el código aquí. Se copiarán tu cuenta <strong>y todas tus facturas</strong>:
             </p>
             <textarea value={importText} onChange={e => { setImportText(e.target.value); setImportMsg('') }}
               placeholder="Pega el código aquí…" rows={3}
