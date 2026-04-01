@@ -143,7 +143,7 @@ export default function App() {
       <ThemeProvider>
         <BrowserRouter basename="/web">
           <Routes>
-            <Route path="/"                element={<Landing />} />
+            <Route path="/"                element={<Navigate to="/login" replace />} />
             <Route path="/login"           element={<Login onLogin={handleLogin} />} />
             <Route path="/register"        element={<Register onLogin={handleLogin} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
