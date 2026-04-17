@@ -28,7 +28,7 @@ const mobileNavItems = [
 ]
 
 export default function Layout({ children, onOpenSearch, collapsed, setCollapsed, onLock }) {
-  const { state } = useApp()
+  const { state, saveStatus } = useApp()
   const { dark, toggle } = useTheme()
   const location = useLocation()
 
@@ -171,6 +171,26 @@ export default function Layout({ children, onOpenSearch, collapsed, setCollapsed
             </button>
 
             <NotificationPanel />
+
+            {/* Cloud save status */}
+            {saveStatus === 'saving' && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-gray-400 dark:text-gray-500">
+                <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                <span className="hidden sm:inline">Guardando…</span>
+              </div>
+            )}
+            {saveStatus === 'saved' && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-[#34C759]">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#34C759]" />
+                <span className="hidden sm:inline">Guardado</span>
+              </div>
+            )}
+            {saveStatus === 'error' && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-[#FF3B30]" title="Error al guardar en la nube">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#FF3B30]" />
+                <span className="hidden sm:inline">Sin conexión</span>
+              </div>
+            )}
 
             {/* Dark mode toggle */}
             <button

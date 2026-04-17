@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useState } from 'react'
+import { createContext, useContext, useReducer, useEffect, useState, useRef } from 'react'
 import { supabase } from '../utils/supabase'
 
 const AppContext = createContext(null)
@@ -317,20 +317,20 @@ function generateRecurringInvoices(invoices) {
 }
 
 export function AppProvider({ children, userId }) {
-  // Load local state immediately (fast, no flicker)
   const [state, dispatch] = useReducer(reducer, null, () => loadLocalState(userId))
   const [synced, setSynced] = useState(false)
+  const [saveStatus, setSaveStatus] = useState('saved') // 'saved' | 'saving' | 'error'
+  const debounceTimer = useRef(null)
+  const isFirstRender = useRef(true)
 
-  // On mount: try to load from Supabase, fall back to local
+  // On mount: load from Supabase
   useEffect(() => {
     if (!userId) { setSynced(true); return }
 
     loadCloudState(userId).then(cloudState => {
       if (cloudState) {
-        // Supabase has data — use it (authoritative source)
         dispatch({ type: 'LOAD_STATE', payload: cloudState })
       } else {
-        // First login on this account — migrate local data to cloud
         const local = loadLocalState(userId)
         if (local !== initialState) {
           saveCloudState(userId, local)
@@ -349,16 +349,32 @@ export function AppProvider({ children, userId }) {
     }
   }, [synced])
 
-  // Save to both localStorage and Supabase on every state change
+  // Save with debounce: localStorage immediately, Supabase after 800ms idle
   useEffect(() => {
     if (!synced) return
+    if (isFirstRender.current) { isFirstRender.current = false; return }
+
     saveLocalState(userId, state)
+
     if (userId) {
-      saveCloudState(userId, state)
+      setSaveStatus('saving')
+      clearTimeout(debounceTimer.current)
+      debounceTimer.current = setTimeout(async () => {
+        try {
+          await saveCloudState(userId, state)
+          setSaveStatus('saved')
+        } catch {
+          setSaveStatus('error')
+        }
+      }, 800)
     }
   }, [state, userId, synced])
 
-  return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>
+  return (
+    <AppContext.Provider value={{ state, dispatch, saveStatus }}>
+      {children}
+    </AppContext.Provider>
+  )
 }
 
 export function useApp() {
